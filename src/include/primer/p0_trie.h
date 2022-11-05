@@ -78,7 +78,7 @@ class TrieNode {
    *
    * @return True if this trie node has any child node, false if it has no child node.
    */
-  bool HasChildren() const { return children_.empty(); }
+  bool HasChildren() const { return !children_.empty(); }
 
   /**
    * TODO(P0): Add implementation
@@ -118,11 +118,11 @@ class TrieNode {
    * @return Pointer to unique_ptr of the inserted child node. If insertion fails, return nullptr.
    */
   std::unique_ptr<TrieNode> *InsertChildNode(char key_char, std::unique_ptr<TrieNode> &&child) {
-    if (this->children_.find(key_char) == this->children_.end()) {
-      return nullptr;
-    }
+    if (this->children_.find(key_char) != this->children_.end()) return nullptr;
+    if (key_char != child->GetKeyChar()) return nullptr;
+
     this->children_[key_char] = std::move(child);
-    return &this->children_[key_char];
+    return &(this->children_[key_char]);
   }
 
   /**
@@ -204,7 +204,7 @@ class TrieNodeWithValue : public TrieNode {
    * @param trieNode TrieNode whose data is to be moved to TrieNodeWithValue
    * @param value
    */
-  TrieNodeWithValue(TrieNode &&trieNode, T value) : TrieNode(std::move(trieNode)){
+  TrieNodeWithValue(TrieNode &&trieNode, T value) : TrieNode(std::forward<TrieNode>(trieNode)){
     this->value_ = value;
     this->is_end_ = true;
   }
@@ -288,8 +288,20 @@ class Trie {
   template <typename T>
   bool Insert(const std::string &key, T value) {
     if (key.empty()) return false;
-
-    return false;
+    this->latch_.WLock();
+    bool exists = true;
+    std::unique_ptr<TrieNode>* cur_node = &this->root_;
+    for (char c: key) {
+      if (!(*cur_node)->HasChild(c)) {
+        exists = false;
+        (*cur_node)->InsertChildNode(c, std::make_unique<TrieNode>(TrieNode(c)));
+      }
+      cur_node = (*cur_node)->GetChildNode(c);
+    }
+    this->latch_.WUnlock();
+    if (exists) return false;
+    *cur_node = std::make_unique<TrieNodeWithValue<T>>(std::move(*(*cur_node)), value);
+    return true;
   }
 
   /**
@@ -309,7 +321,46 @@ class Trie {
    * @param key Key used to traverse the trie and find correct node
    * @return True if key exists and is removed, false otherwise
    */
-  bool Remove(const std::string &key) { return false; }
+  bool keyExists(const std::string& key) {
+
+    std::unique_ptr<TrieNode>* cur_node = &this->root_;
+    for (char c: key) {
+      if (!(*cur_node)->HasChild(c)) return false;
+      cur_node = (*cur_node)->GetChildNode(c);
+    }
+    return (*cur_node)->IsEndNode();
+  }
+
+  bool recursivelyRemove(const std::string &key, size_t index, std::unique_ptr<TrieNode>* cur_node) {
+
+    if (index == key.size()) {
+      (*cur_node)->SetEndNode(false);
+      return !(*cur_node)->HasChildren();
+    }
+
+    bool removable = recursivelyRemove(key, index + 1, (*cur_node)->GetChildNode(key[index]));
+
+    if (removable) {
+      (*cur_node)->RemoveChildNode(key[index]);
+    }
+
+    return !(*cur_node)->HasChildren() && !(*cur_node)->IsEndNode();
+
+  }
+
+  bool Remove(const std::string &key) {
+    if (key.empty()) return false;
+
+    this->latch_.RLock();
+    bool exists = keyExists(key);
+    this->latch_.RUnlock();
+    if (!exists) return false;
+
+    this->latch_.WLock();
+    recursivelyRemove(key, 0, &this->root_);
+    this->latch_.WUnlock();
+    return true;
+  }
 
   /**
    * TODO(P0): Add implementation
@@ -332,7 +383,23 @@ class Trie {
   template <typename T>
   T GetValue(const std::string &key, bool *success) {
     *success = false;
-    return {};
+    if (key.empty()) return T();
+    this->latch_.RLock();
+    std::unique_ptr<TrieNode>* cur_node = &this->root_;
+    for (char c: key) {
+      if (!(*cur_node)->HasChild(c)) {
+        *success = false;
+        this->latch_.RUnlock();
+        return T();
+      }
+      cur_node = (*cur_node)->GetChildNode(c);
+    }
+    TrieNodeWithValue<T> *value_node = dynamic_cast<TrieNodeWithValue<T> *>(&(*(*cur_node)));
+    if (value_node == nullptr) return T();
+
+    *success = true;
+    this->latch_.RUnlock();
+    return value_node->GetValue();
   }
 };
 
