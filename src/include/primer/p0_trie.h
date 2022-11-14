@@ -291,20 +291,20 @@ class Trie {
       return false;
     }
     this->latch_.WLock();
-    bool exists = true;
+
     std::unique_ptr<TrieNode> *cur_node = &this->root_;
     for (char c : key) {
       if (!(*cur_node)->HasChild(c)) {
-        exists = false;
         (*cur_node)->InsertChildNode(c, std::make_unique<TrieNode>(TrieNode(c)));
       }
       cur_node = (*cur_node)->GetChildNode(c);
     }
     this->latch_.WUnlock();
-    if (exists) {
+    if (cur_node->get()->IsEndNode()) {
       return false;
     }
     *cur_node = std::make_unique<TrieNodeWithValue<T>>(std::move(*(*cur_node)), value);
+
     return true;
   }
 
@@ -405,6 +405,7 @@ class Trie {
     }
     auto *value_node = dynamic_cast<TrieNodeWithValue<T> *>(&(*(*cur_node)));
     if (value_node == nullptr) {
+      this->latch_.RUnlock();
       return T();
     }
 
