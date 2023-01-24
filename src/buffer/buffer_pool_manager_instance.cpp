@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/buffer_pool_manager_instance.h"
-#include <mutex>
+#include <mutex>  // NOLINT
 
 #include "common/config.h"
 #include "common/exception.h"
@@ -31,7 +31,6 @@ BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManag
   for (size_t i = 0; i < pool_size_; ++i) {
     free_list_.emplace_back(static_cast<int>(i));
   }
-
 }
 
 BufferPoolManagerInstance::~BufferPoolManagerInstance() {
@@ -43,7 +42,7 @@ BufferPoolManagerInstance::~BufferPoolManagerInstance() {
 auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   std::lock_guard<std::mutex> guard(latch_);
   frame_id_t frame_id;
-  Page* cur_page = GetOnePage(frame_id);
+  Page *cur_page = GetOnePage(frame_id);
 
   if (cur_page == nullptr) {
     return nullptr;
@@ -64,7 +63,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
 auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   std::lock_guard<std::mutex> guard(latch_);
   frame_id_t frame_id;
-  Page* cur_page = nullptr;
+  Page *cur_page = nullptr;
   if (page_table_->Find(page_id, frame_id)) {
     cur_page = &pages_[frame_id];
     cur_page->pin_count_++;
@@ -93,7 +92,7 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   if (!page_table_->Find(page_id, frame_id)) {
     return false;
   }
-  Page* cur_page = &pages_[frame_id];
+  Page *cur_page = &pages_[frame_id];
   if (cur_page->pin_count_ <= 0) {
     return false;
   }
@@ -113,7 +112,7 @@ auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {
   if (!page_table_->Find(page_id, frame_id)) {
     return false;
   }
-  Page* cur_page = &pages_[frame_id];
+  Page *cur_page = &pages_[frame_id];
   disk_manager_->WritePage(page_id, cur_page->GetData());
   cur_page->is_dirty_ = false;
   return false;
@@ -133,7 +132,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   if (!page_table_->Find(page_id, frame_id)) {
     return true;
   }
-  Page* cur_page = &pages_[frame_id];
+  Page *cur_page = &pages_[frame_id];
   if (cur_page->GetPinCount() > 0) {
     return false;
   }
@@ -152,7 +151,7 @@ auto BufferPoolManagerInstance::AllocatePage() -> page_id_t { return next_page_i
 
 auto BufferPoolManagerInstance::GetOnePage(frame_id_t &frame_id) -> Page * {
   // std::lock_guard<std::mutex> guard(latch_);
-  Page* cur_page = nullptr;
+  Page *cur_page = nullptr;
 
   if (!free_list_.empty()) {
     frame_id = free_list_.front();

@@ -168,9 +168,9 @@ class ExtendibleHashTable : public HashTable<K, V> {
   // TODO(student): You may add additional private members and helper functions and remove the ones
   // you don't need.
 
-  int global_depth_;    // The global depth of the directory
-  size_t bucket_size_;  // The size of a bucket
-  int num_buckets_;     // The number of buckets in the hash table
+  int global_depth_{0};  // The global depth of the directory
+  size_t bucket_size_;   // The size of a bucket
+  int num_buckets_{1};   // The number of buckets in the hash table
   mutable std::mutex latch_;
   std::vector<std::shared_ptr<Bucket>> dir_;  // The directory of the hash table
 
@@ -194,11 +194,9 @@ class ExtendibleHashTable : public HashTable<K, V> {
   auto IndexOf(const K &key) -> size_t;
   auto ExpandDirectory() -> void;
 
-
   auto GetGlobalDepthInternal() const -> int;
   auto GetLocalDepthInternal(int dir_index) const -> int;
   auto GetNumBucketsInternal() const -> int;
-
 };
 
 }  // namespace bustub

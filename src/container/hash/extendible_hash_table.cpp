@@ -24,12 +24,10 @@
 namespace bustub {
 
 template <typename K, typename V>
-ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size)
-    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {
-    for (int i = 0; i < num_buckets_; i++) {
-      dir_.emplace_back(new Bucket(bucket_size_));
-    }
-    
+ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size) : bucket_size_(bucket_size) {
+  for (int i = 0; i < num_buckets_; i++) {
+    dir_.emplace_back(new Bucket(bucket_size_));
+  }
 }
 
 template <typename K, typename V>
@@ -97,7 +95,6 @@ auto ExtendibleHashTable<K, V>::ExpandDirectory() -> void {
 
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
-  
   auto index = IndexOf(key);
   std::lock_guard<std::mutex> lock(this->latch_);
   std::shared_ptr<Bucket> cur_bucket = dir_[index];
@@ -110,7 +107,6 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
     index = IndexOf(key);
     cur_bucket = dir_[index];
   }
-    
 }
 
 template <typename K, typename V>
@@ -119,7 +115,7 @@ void ExtendibleHashTable<K, V>::RedistributeBucket(std::shared_ptr<Bucket> bucke
   auto bucket1 = std::shared_ptr<Bucket>(new Bucket(bucket_size_, bucket->GetDepth() + 1));
   num_buckets_++;
   int mask = (1 << bucket->GetDepth());
-  for (auto [k, v]: bucket->GetItems()) {
+  for (auto [k, v] : bucket->GetItems()) {
     if (std::hash<K>()(k) & mask) {
       bucket1->Insert(k, v);
     } else {
@@ -141,7 +137,7 @@ ExtendibleHashTable<K, V>::Bucket::Bucket(size_t array_size, int depth) : size_(
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
-  for (const auto &[k, v]: list_) {
+  for (const auto &[k, v] : list_) {
     if (k == key) {
       value = v;
       return true;
@@ -166,7 +162,7 @@ auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> 
   if (IsFull()) {
     return false;
   }
-  for (auto &[k, v]: list_) {
+  for (auto &[k, v] : list_) {
     if (k == key) {
       v = value;
       return true;
