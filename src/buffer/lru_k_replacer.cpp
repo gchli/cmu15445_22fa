@@ -124,7 +124,7 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
         cache_list_.remove(frame_id);
     }
     frame_info_map_.erase(frame_id);
-
+    curr_size_--;
 }
 
 auto LRUKReplacer::Size() -> size_t { return curr_size_; }
