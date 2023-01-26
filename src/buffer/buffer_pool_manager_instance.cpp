@@ -62,7 +62,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
 
 auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   std::lock_guard<std::mutex> guard(latch_);
-  frame_id_t frame_id;
+  frame_id_t frame_id = -1;
   Page *cur_page = nullptr;
   if (page_table_->Find(page_id, frame_id)) {
     cur_page = &pages_[frame_id];
@@ -87,8 +87,9 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   if (cur_page == nullptr) {
     return nullptr;
   }
-  replacer_->SetEvictable(frame_id, false);
+
   replacer_->RecordAccess(frame_id);
+  replacer_->SetEvictable(frame_id, false);
   page_table_->Insert(page_id, frame_id);
 
   pages_[frame_id].page_id_ = page_id;
@@ -127,7 +128,7 @@ auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {
   Page *cur_page = &pages_[frame_id];
   disk_manager_->WritePage(page_id, cur_page->GetData());
   cur_page->is_dirty_ = false;
-  return false;
+  return true;
 }
 
 void BufferPoolManagerInstance::FlushAllPgsImp() {
