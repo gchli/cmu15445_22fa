@@ -71,15 +71,15 @@ auto ExtendibleHashTable<K, V>::GetNumBucketsInternal() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
-  auto index = IndexOf(key);
   std::lock_guard<std::mutex> lock(this->latch_);
+  auto index = IndexOf(key);
   return dir_[index]->Find(key, value);
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
-  auto index = IndexOf(key);
   std::lock_guard<std::mutex> lock(this->latch_);
+  auto index = IndexOf(key);
   return dir_[index]->Remove(key);
 }
 
@@ -95,8 +95,8 @@ auto ExtendibleHashTable<K, V>::ExpandDirectory() -> void {
 
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
-  auto index = IndexOf(key);
   std::lock_guard<std::mutex> lock(this->latch_);
+  auto index = IndexOf(key);
   std::shared_ptr<Bucket> cur_bucket = dir_[index];
 
   while (!cur_bucket->Insert(key, value)) {

@@ -68,7 +68,19 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
     cur_page = &pages_[frame_id];
     cur_page->pin_count_++;
     replacer_->RecordAccess(frame_id);
+    replacer_->SetEvictable(frame_id, false);
     return cur_page;
+  }
+
+  bool all_used = true;
+  for (size_t i = 0; i < pool_size_; ++i) {
+    if (pages_[i].GetPinCount() <= 0) {
+      all_used = false;
+      break;
+    }
+  }
+  if (all_used) {
+    return nullptr;
   }
 
   cur_page = GetOnePage(frame_id);
@@ -136,14 +148,17 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   if (cur_page->GetPinCount() > 0) {
     return false;
   }
-  disk_manager_->WritePage(cur_page->GetPageId(), cur_page->GetData());
-  replacer_->SetEvictable(frame_id, false);
+  if (cur_page->IsDirty()) {
+    disk_manager_->WritePage(cur_page->GetPageId(), cur_page->GetData());
+  }
+  replacer_->Remove(frame_id);
   page_table_->Remove(page_id);
   cur_page->ResetMemory();
   cur_page->page_id_ = INVALID_PAGE_ID;
   cur_page->is_dirty_ = false;
   cur_page->pin_count_ = 0;
   free_list_.emplace_back(frame_id);
+  DeallocatePage(page_id);
   return true;
 }
 

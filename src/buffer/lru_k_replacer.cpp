@@ -26,7 +26,9 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
     return false;
   }
 
-  frame_id_t victim = replacer_size_ + 1;
+#define INVALID_FRAME_ID (-1)
+
+  frame_id_t victim = INVALID_FRAME_ID;
   size_t min_timestamp = current_timestamp_ + 1;
   for (auto id : history_list_) {
     if (!frame_info_map_[id].IsEvictable()) {
@@ -38,7 +40,8 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
       min_timestamp = timestamp;
     }
   }
-  if (victim == static_cast<frame_id_t>(replacer_size_ + 1)) {
+
+  if (victim == INVALID_FRAME_ID) {
     for (auto iter = cache_list_.rbegin(); iter != cache_list_.rend(); iter++) {
       if (!frame_info_map_[*iter].IsEvictable()) {
         continue;
@@ -48,7 +51,7 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
     }
   }
 
-  if (victim == static_cast<frame_id_t>(replacer_size_ + 1)) {
+  if (victim == INVALID_FRAME_ID) {
     return false;
   }
 
@@ -79,7 +82,6 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
   }
 
   frame_info_map_[frame_id].IncrementAccessCount();
-  frame_info_map_[frame_id].SetTimestamp(current_timestamp_);
 
   auto access_count = frame_info_map_[frame_id].GetAccessCount();
   if (access_count == k_) {
@@ -93,11 +95,12 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
+  std::lock_guard<std::mutex> guard(latch_);
   if (frame_info_map_.count(frame_id) == 0) {
     std::cerr << "frame_id " << frame_id << " not found in frame_info_map_." << std::endl;
     return;
   }
-  std::lock_guard<std::mutex> guard(latch_);
+
   bool cur_frame_evictable = frame_info_map_[frame_id].IsEvictable();
 
   if (set_evictable && !cur_frame_evictable) {
