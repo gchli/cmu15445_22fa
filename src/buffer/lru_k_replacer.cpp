@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <iostream>
 #include <mutex>  // NOLINT
+#include <stdexcept>
 #include "common/config.h"
 
 namespace bustub {
@@ -70,8 +71,7 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
 void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
   std::lock_guard<std::mutex> guard(latch_);
   if (static_cast<size_t>(frame_id) > replacer_size_) {
-    std::cerr << "frame_id " << frame_id << " is out of range." << std::endl;
-    return;
+    throw std::runtime_error("frame_id " + std::to_string(frame_id) + " is out of range.\n");
   }
 
   IncreseTimestamp();
@@ -97,8 +97,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
   std::lock_guard<std::mutex> guard(latch_);
   if (frame_info_map_.count(frame_id) == 0) {
-    std::cerr << "frame_id " << frame_id << " not found in frame_info_map_." << std::endl;
-    return;
+    throw std::runtime_error("frame_id " + std::to_string(frame_id) + " not found in frame_info_map_.\n");
   }
 
   bool cur_frame_evictable = frame_info_map_[frame_id].IsEvictable();
@@ -117,8 +116,7 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
     return;
   }
   if (!frame_info_map_[frame_id].IsEvictable()) {
-    std::cerr << "frame_id " << frame_id << " is not evictable." << std::endl;
-    return;
+    throw std::runtime_error("frame_id " + std::to_string(frame_id) + " is not evictable.\n");
   }
   FrameInfo::FrameLocation location = frame_info_map_[frame_id].GetLocation();
   if (location == FrameInfo::FrameLocation::history) {
