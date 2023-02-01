@@ -75,6 +75,8 @@ class BPlusTree {
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
  private:
+  auto FindLeafPage(const KeyType &key) -> LeafPage *;
+  
   void UpdateRootPageId(int insert_record = 0);
 
   /* Debug Routines for FREE!! */

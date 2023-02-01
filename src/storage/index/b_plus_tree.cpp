@@ -1,5 +1,6 @@
 #include <string>
 
+#include "common/config.h"
 #include "common/exception.h"
 #include "common/logger.h"
 #include "common/rid.h"
@@ -21,7 +22,7 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manag
  * Helper function to decide whether current b+tree is empty
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return true; }
+auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return root_page_id_ == INVALID_PAGE_ID; }
 /*****************************************************************************
  * SEARCH
  *****************************************************************************/
@@ -32,7 +33,20 @@ auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return true; }
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction) -> bool {
-  return false;
+  /* 1. Empty tree, return false. */
+  if (IsEmpty()) {
+    return false;
+  }
+  /* 2. Find the target leaf page may contain the key. */
+  auto leaf_page = FindLeafPage(key);
+
+  /* 3. Look up the key in the leaf page. */
+  result->resize(1);
+  // bool found = leaf_page->Find(key, (*result)[0], comparator_); wrong?
+  ValueType value;
+  bool found = leaf_page->Find(key, value, comparator_);
+  
+  return found;
 }
 
 /*****************************************************************************
@@ -47,6 +61,7 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool {
+  
   return false;
 }
 
