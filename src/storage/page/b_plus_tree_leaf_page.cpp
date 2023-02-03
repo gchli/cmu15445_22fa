@@ -70,10 +70,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &val
   int idx = IndexOf(key, comparator);
   int cur_size = GetSize();
   assert(idx <= cur_size);
-  if (idx == cur_size) {
-    return GetSize();
-  }
-  if (comparator(KeyAt(idx), key) == 0) {
+
+  if (idx < cur_size && comparator(KeyAt(idx), key) == 0) {
     // TODO(ligch): Recheck this. Update or do nothing?
     array_[idx].second = value;
   } else {

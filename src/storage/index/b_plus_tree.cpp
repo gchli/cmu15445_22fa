@@ -77,7 +77,7 @@ auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, BufferPoolMa
 
   auto page = buffer_pool_manager->NewPage(&new_page_id);
   auto new_internal_page = reinterpret_cast<InternalPage*>(page->GetData());
-  new_internal_page->Init(new_page_id, parent_page_id, leaf_max_size_);
+  new_internal_page->Init(new_page_id, parent_page_id, internal_max_size_);
   internal_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager);
   buffer_pool_manager->UnpinPage(new_page_id, true);
   return new_internal_page;
@@ -85,19 +85,19 @@ auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, BufferPoolMa
 
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::FetchTreePage(page_id_t page_id) -> BPlusTreePage * {
-  auto page = buffer_pool_manager_->FetchPage(root_page_id_);
+  auto page = buffer_pool_manager_->FetchPage(page_id);
   return reinterpret_cast<BPlusTreePage*>(page->GetData());
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::FetchLeafPage(page_id_t page_id) -> LeafPage * {
-  auto page = buffer_pool_manager_->FetchPage(root_page_id_);
+  auto page = buffer_pool_manager_->FetchPage(page_id);
   return reinterpret_cast<LeafPage*>(page->GetData());
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::FetchInternalPage(page_id_t page_id) -> InternalPage * {
-  auto page = buffer_pool_manager_->FetchPage(root_page_id_);
+  auto page = buffer_pool_manager_->FetchPage(page_id);
   return reinterpret_cast<InternalPage*>(page->GetData());
 }
 
@@ -108,7 +108,8 @@ auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key) -> LeafPage * {
   auto page = FetchTreePage(page_id);
   while (!page->IsLeafPage()) {
     auto internal_page = reinterpret_cast<InternalPage*>(page);
-    page_id_t child_page_id = internal_page->IndexOf(key, comparator_);
+    int idx = internal_page->IndexOf(key, comparator_);
+    page_id_t child_page_id = internal_page->ValueAt(idx);
     page = FetchTreePage(child_page_id);
     buffer_pool_manager_->UnpinPage(page_id, false);
     page_id = child_page_id;
@@ -138,7 +139,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage* old_page, const KeyType &key,
   parent_page->Insert(key, new_page->GetPageId(), comparator_);
   if (parent_page->GetSize() > parent_page->GetMaxSize()) {
     auto new_internal_page = SplitInternalPage(parent_page, buffer_pool_manager_);
-    parent_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager_);
+    // parent_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager_);
     InsertInParent(reinterpret_cast<BPlusTreePage*>(parent_page), 
       new_internal_page->KeyAt(0), reinterpret_cast<BPlusTreePage*>(new_internal_page));
   }
@@ -232,7 +233,7 @@ auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); 
  * @return Page id of the root of this tree
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { return 0; }
+auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { return root_page_id_; }
 
 /*****************************************************************************
  * UTILITIES AND DEBUG

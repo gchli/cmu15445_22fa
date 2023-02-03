@@ -116,7 +116,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const ValueType 
   int cur_size = GetSize();
   assert(idx <= cur_size);
 
-  if (comparator(KeyAt(idx), key) == 0) {
+  if (idx < cur_size && comparator(KeyAt(idx), key) == 0) {
     // TODO(ligch): Recheck this. Update or do nothing?
     std::cerr << "duplicated key" << std::endl;
     array_[idx].second = value;
