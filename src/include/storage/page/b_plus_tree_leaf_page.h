@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "buffer/buffer_pool_manager.h"
 #include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
@@ -50,7 +51,9 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
   auto ValueAt(int index) const -> ValueType;
+  auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   auto Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const -> bool;
+  auto RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
  private:
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
   page_id_t next_page_id_;
