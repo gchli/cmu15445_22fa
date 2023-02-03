@@ -55,7 +55,7 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
 
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Split(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager) -> LeafPage* {
+auto BPLUSTREE_TYPE::SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager) -> LeafPage* {
   page_id_t new_page_id;
   page_id_t parent_page_id = leaf_page->GetParentPageId();
 
@@ -126,7 +126,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage* old_page, const KeyType &key,
     root_page->Init(root_page_id_, INVALID_PAGE_ID, internal_max_size_);
     old_page->SetParentPageId(root_page_id_);
     new_page->SetParentPageId(root_page_id_);
-    // ?
+    
     UpdateRootPageId(false);
     root_page->SetupNewRoot(old_page, key, new_page);
     buffer_pool_manager_->UnpinPage(old_page->GetPageId(), true);
@@ -144,8 +144,17 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage* old_page, const KeyType &key,
       new_internal_page->KeyAt(0), reinterpret_cast<BPlusTreePage*>(new_internal_page));
   }
   buffer_pool_manager_->UnpinPage(parent_page_id, true);
-
 }
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::CreateNewRoot(const KeyType &key, const ValueType &value, Transaction *transaction) {
+  auto new_page = buffer_pool_manager_->NewPage(&root_page_id_);
+  auto leaf_page = reinterpret_cast<LeafPage*>(new_page->GetData());
+  leaf_page->Init(root_page_id_, INVALID_PAGE_ID, leaf_max_size_);
+  UpdateRootPageId(false);
+  leaf_page->Insert(key, value, comparator_);
+  buffer_pool_manager_->UnpinPage(root_page_id_, true);
+}
+
 /*****************************************************************************
  * INSERTION
  *****************************************************************************/
@@ -159,12 +168,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage* old_page, const KeyType &key,
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool {
   if (IsEmpty()) {
-    auto new_page = buffer_pool_manager_->NewPage(&root_page_id_);
-    auto leaf_page = reinterpret_cast<LeafPage*>(new_page->GetData());
-    leaf_page->Init(root_page_id_, INVALID_PAGE_ID, leaf_max_size_);
-    UpdateRootPageId(false);
-    leaf_page->Insert(key, value, comparator_);
-    buffer_pool_manager_->UnpinPage(root_page_id_, true);
+    CreateNewRoot(key, value, transaction);
     return true;
   }
   auto leaf_page = FindLeafPage(key);
@@ -177,8 +181,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
 
   leaf_page->Insert(key, value, comparator_);
   if (leaf_page->GetSize() > leaf_page->GetMaxSize()) {
-    // TODO(ligch): split and push the key to its parent.
-    auto new_leaf_page = Split(leaf_page, buffer_pool_manager_);
+    auto new_leaf_page = SplitLeafPage(leaf_page, buffer_pool_manager_);
     // Copy up key to parent
     InsertInParent(reinterpret_cast<BPlusTreePage*>(leaf_page), new_leaf_page->KeyAt(0),
         reinterpret_cast<BPlusTreePage*>(new_leaf_page));

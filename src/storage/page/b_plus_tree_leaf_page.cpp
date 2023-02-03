@@ -15,6 +15,7 @@
 #include "common/exception.h"
 #include "common/rid.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
+#include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
 
@@ -98,6 +99,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Find(const KeyType &key, ValueType &value, cons
   value = ValueAt(idx);
   return true;
 }
+
+
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void {
   int total_size = GetSize();

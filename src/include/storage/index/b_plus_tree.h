@@ -83,11 +83,11 @@ class BPlusTree {
   auto FetchTreePage(page_id_t page_id) -> BPlusTreePage *;
   auto FetchLeafPage(page_id_t page_id) -> LeafPage *;
   auto FetchInternalPage(page_id_t page_id) -> InternalPage *;
-  auto Split(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager) -> LeafPage*;
+  auto SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager) -> LeafPage*;
   auto SplitInternalPage(InternalPage *internal_page, BufferPoolManager *buffer_pool_manager) -> InternalPage*;
   auto InsertInParent(BPlusTreePage* old_page, const KeyType &key, BPlusTreePage* new_page) -> void;
   void UpdateRootPageId(int insert_record = 0);
-
+  void CreateNewRoot(const KeyType &key, const ValueType &value, Transaction *transaction);
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 
