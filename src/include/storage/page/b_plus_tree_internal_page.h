@@ -12,6 +12,7 @@
 
 #include <queue>
 
+#include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
@@ -46,7 +47,19 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto SetupNewRoot(BPlusTreePage* old_page, const KeyType &key, BPlusTreePage* new_page) -> void;
   auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
+  void InsertFront(const KeyType &key, const ValueType &value);
+  void InsertBack(const KeyType &key, const ValueType &value);
+
+  auto Remove(const KeyType &key, page_id_t &page_id, const KeyComparator &comparator) -> bool;
+
+  auto ValueIndex(const ValueType &value) const -> int;
+  auto GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
+  auto GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
+  auto CopyAllFrom(BPlusTreeInternalPage *internal_page) -> void;
+
  private:
+  // auto InsertAt(int index, const KeyType &key, const ValueType &value) -> bool;
+  // auto RemoveAt(int index) -> bool;
   // Flexible array member for page data.
   MappingType array_[1];
 };

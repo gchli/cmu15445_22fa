@@ -14,8 +14,11 @@
 #include "common/config.h"
 #include "common/exception.h"
 #include "common/rid.h"
+#include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
+#include "type/value.h"
+#include "common/logger.h"
 
 namespace bustub {
 
@@ -134,6 +137,52 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::IndexOf(const KeyType &key, const KeyComparator
   }
   return l;
 }
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, ValueType &value, const KeyComparator &comparator) -> bool {
+  int idx = IndexOf(key, comparator);
+  if (idx >= GetSize() || comparator(KeyAt(idx), key) != 0) {
+    return false;
+  }
+  value = ValueAt(idx);
+  for (int i = idx; i < GetSize() - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
+  IncreaseSize(-1);
+  return true;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t { return GetNextPageId(); }
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t {
+  if (IsRootPage()) {
+    return INVALID_PAGE_ID;
+  } 
+  auto parent_page = reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE*>(
+      buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
+  int idx = parent_page->IndexOf(KeyAt(0), comparator);
+  buffer_pool_manager->UnpinPage(parent_page->GetPageId(), false);
+  if (idx == 0) {
+    return INVALID_PAGE_ID;
+  }
+  return parent_page->ValueAt(idx - 1).GetPageId();
+}
+
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> void {
+  int ori_size = GetSize();
+  int new_size = ori_size + leaf_page->GetSize();
+  SetSize(new_size);
+  leaf_page->SetSize(0);
+  for (int i = ori_size; i < new_size; i++) {
+    array_[i].first = leaf_page->KeyAt(i - ori_size);
+    array_[i].second = leaf_page->ValueAt(i - ori_size);
+  }
+}
+
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;

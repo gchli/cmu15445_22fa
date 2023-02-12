@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "common/config.h"
 #include "common/exception.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 
@@ -133,6 +134,98 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const ValueType 
 
   return GetSize();
 }
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(const KeyType &key, page_id_t &page_id, const KeyComparator &comparator) -> bool {
+  int idx = IndexOf(key, comparator);
+  if (idx >= GetSize() || comparator(KeyAt(idx), key) != 0) {
+    return false;
+  }
+  // why cant use ValueType& for RID?
+  for (int i = idx; i < GetSize() - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
+  IncreaseSize(-1);
+  return true;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const -> int {
+  // TODO(ligch): Maybe we can use binary search here.
+  for (int i = 0; i < GetSize(); i++) {
+    if (array_[i].second == value) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertFront(const KeyType &key, const ValueType &value) {
+  int cur_size = GetSize();
+  for (int i = cur_size; i > 0; i--) {
+    array_[i].first = array_[i - 1].first;
+    array_[i].second = array_[i - 1].second;
+  }
+  array_[0].first = key;
+  array_[0].second = value;
+  IncreaseSize(1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertBack(const KeyType &key, const ValueType &value) {
+  int cur_size = GetSize();
+
+  array_[cur_size].first = key;
+  array_[cur_size].second = value;
+  IncreaseSize(1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t{ 
+  if (IsRootPage()) {
+    return INVALID_PAGE_ID;
+  } 
+  auto parent_page = reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE*>(
+      buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
+  int idx = parent_page->ValueIndex(GetPageId());
+  buffer_pool_manager->UnpinPage(parent_page->GetPageId(), false);
+  if (idx == GetSize() - 1) {
+    return INVALID_PAGE_ID;
+  }
+  return parent_page->ValueAt(idx + 1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t{
+  if (IsRootPage()) {
+    return INVALID_PAGE_ID;
+  } 
+  auto parent_page = reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE*>(
+      buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
+  int idx = parent_page->ValueIndex(GetPageId());
+  buffer_pool_manager->UnpinPage(parent_page->GetPageId(), false);
+  if (idx == 0) {
+    return INVALID_PAGE_ID;
+  }
+  return parent_page->ValueAt(idx - 1);
+}
+
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyAllFrom(BPlusTreeInternalPage *internal_page) -> void {
+  int ori_size = GetSize();
+  int new_size = ori_size + internal_page->GetSize();
+  SetSize(new_size);
+  internal_page->SetSize(0);
+  for (int i = ori_size; i < new_size; i++) {
+    array_[i].first = internal_page->KeyAt(i - ori_size);
+    array_[i].second = internal_page->ValueAt(i - ori_size);
+  }
+}
+
+
 
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;

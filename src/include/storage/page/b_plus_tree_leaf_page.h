@@ -54,8 +54,16 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   auto Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const -> bool;
   auto RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
- private:
+  auto Remove(const KeyType &key, ValueType &value, const KeyComparator &comparator) -> bool;
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
+
+  auto GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
+  auto GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
+  auto CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> void;
+
+ private:
+
+  
   page_id_t next_page_id_;
   // Flexible array member for page data.
   MappingType array_[1];

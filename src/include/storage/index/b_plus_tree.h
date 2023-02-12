@@ -88,6 +88,13 @@ class BPlusTree {
   auto InsertInParent(BPlusTreePage* old_page, const KeyType &key, BPlusTreePage* new_page) -> void;
   void UpdateRootPageId(int insert_record = 0);
   void CreateNewRoot(const KeyType &key, const ValueType &value, Transaction *transaction);
+  void DeleteEntry(BPlusTreePage* page, const KeyType &key, Transaction *transaction);
+  
+  auto CanCoalesce(BPlusTreePage* page, page_id_t &l_page_id, page_id_t &r_page_id) -> bool;
+  auto CanRedistribute(BPlusTreePage* page, int &loc, page_id_t &from_page) -> bool;
+  void DoCoalesce(BPlusTreePage* left_page, BPlusTreePage* right_page, const KeyType &key, [[maybe_unused]]Transaction *transaction);
+  void DoRedistribute(BPlusTreePage* page, int &loc, BPlusTreePage* from_page, const KeyType &key, [[maybe_unused]]Transaction *transaction);
+  
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 
