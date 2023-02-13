@@ -149,6 +149,8 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(const KeyType &key, page_id_t &page_
   return true;
 }
 
+
+
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const -> int {
   // TODO(ligch): Maybe we can use binary search here.
@@ -172,6 +174,25 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertFront(const KeyType &key, const Value
   array_[0].second = value;
   IncreaseSize(1);
 }
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveFront() {
+  int cur_size = GetSize();
+  for (int i = 0; i < cur_size - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
+  IncreaseSize(-1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveLast() {
+  int cur_size = GetSize();
+  array_[cur_size - 1].first = KeyType{};
+  array_[cur_size - 1].second = ValueType{};
+  IncreaseSize(-1);
+}
+
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertBack(const KeyType &key, const ValueType &value) {

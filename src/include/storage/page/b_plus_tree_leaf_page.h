@@ -55,6 +55,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const -> bool;
   auto RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
   auto Remove(const KeyType &key, ValueType &value, const KeyComparator &comparator) -> bool;
+  auto RemoveFront() -> void;
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
 
   auto GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;

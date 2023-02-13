@@ -151,6 +151,14 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, ValueType &value, co
   IncreaseSize(-1);
   return true;
 }
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveFront() -> void {
+  for (int i = 0; i < GetSize() - 1; i++) {
+    array_[i].first = array_[i + 1].first;
+    array_[i].second = array_[i + 1].second;
+  }
+  IncreaseSize(-1);
+}
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t { return GetNextPageId(); }

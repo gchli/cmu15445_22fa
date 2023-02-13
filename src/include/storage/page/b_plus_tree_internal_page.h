@@ -48,6 +48,8 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   void InsertFront(const KeyType &key, const ValueType &value);
+  void RemoveFront();
+  void RemoveLast();
   void InsertBack(const KeyType &key, const ValueType &value);
 
   auto Remove(const KeyType &key, page_id_t &page_id, const KeyComparator &comparator) -> bool;
