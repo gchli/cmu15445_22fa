@@ -13,12 +13,12 @@
 
 #include "common/config.h"
 #include "common/exception.h"
+#include "common/logger.h"
 #include "common/rid.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
 #include "type/value.h"
-#include "common/logger.h"
 
 namespace bustub {
 
@@ -69,7 +69,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const -> ValueType {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator)
+    -> int {
   // replace with your own code
   int idx = IndexOf(key, comparator);
   int cur_size = GetSize();
@@ -94,7 +95,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &val
 
 /* Find the value of the corresponding key. If not exists, return false. */
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const -> bool {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const
+    -> bool {
   int idx = IndexOf(key, comparator);
   if (idx >= GetSize() || comparator(KeyAt(idx), key) != 0) {
     return false;
@@ -103,9 +105,9 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Find(const KeyType &key, ValueType &value, cons
   return true;
 }
 
-
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page,
+                                                      BufferPoolManager *buffer_pool_manager) -> void {
   int total_size = GetSize();
   assert(total_size == GetMaxSize() + 1);
   int idx = total_size / 2;
@@ -172,7 +174,6 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> vo
     array_[i].second = leaf_page->ValueAt(i - ori_size);
   }
 }
-
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;

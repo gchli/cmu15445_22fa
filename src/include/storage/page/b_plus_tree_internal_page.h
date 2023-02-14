@@ -44,8 +44,9 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto ValueAt(int index) const -> ValueType;
   void SetValueAt(int index, const ValueType &value);
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
-  auto SetupNewRoot(BPlusTreePage* old_page, const KeyType &key, BPlusTreePage* new_page) -> void;
-  auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
+  auto SetupNewRoot(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page) -> void;
+  auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager)
+      -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   void InsertFront(const KeyType &key, const ValueType &value);
   void RemoveFront();

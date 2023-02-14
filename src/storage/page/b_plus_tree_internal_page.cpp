@@ -45,7 +45,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const -> KeyType {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) { 
+void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
   assert(index >= 0 && index < GetSize());
   array_[index].first = key;
 }
@@ -85,7 +85,8 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::IndexOf(const KeyType &key, const KeyCompar
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetupNewRoot(BPlusTreePage* old_page, const KeyType &key, BPlusTreePage* new_page) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetupNewRoot(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page)
+    -> void {
   SetSize(2);
   SetValueAt(0, old_page->GetPageId());
   SetKeyAt(1, key);
@@ -93,8 +94,9 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetupNewRoot(BPlusTreePage* old_page, const
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void {
-  //TODO(ligch): Maybe this function can be reconstruected.
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page,
+                                                              BufferPoolManager *buffer_pool_manager) -> void {
+  // TODO(ligch): Maybe this function can be reconstruected.
   int total_size = GetSize();
   assert(total_size == GetMaxSize() + 1);
   int idx = total_size / 2;
@@ -109,7 +111,8 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERN
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator)
+    -> int {
   // replace with your own code
 
   // For insert, the kv should insert after the idx.
@@ -135,7 +138,8 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const ValueType 
   return GetSize();
 }
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(const KeyType &key, page_id_t &page_id, const KeyComparator &comparator) -> bool {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(const KeyType &key, page_id_t &page_id, const KeyComparator &comparator)
+    -> bool {
   int idx = IndexOf(key, comparator);
   if (idx >= GetSize() || comparator(KeyAt(idx), key) != 0) {
     return false;
@@ -149,8 +153,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(const KeyType &key, page_id_t &page_
   return true;
 }
 
-
-
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const -> int {
   // TODO(ligch): Maybe we can use binary search here.
@@ -161,7 +163,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const ->
   }
   return -1;
 }
-
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertFront(const KeyType &key, const ValueType &value) {
@@ -193,7 +194,6 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveLast() {
   IncreaseSize(-1);
 }
 
-
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertBack(const KeyType &key, const ValueType &value) {
   int cur_size = GetSize();
@@ -204,12 +204,13 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertBack(const KeyType &key, const ValueT
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t{ 
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_pool_manager,
+                                                    const KeyComparator &comparator) const -> page_id_t {
   if (IsRootPage()) {
     return INVALID_PAGE_ID;
-  } 
-  auto parent_page = reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE*>(
-      buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
+  }
+  auto parent_page =
+      reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE *>(buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
   int idx = parent_page->ValueIndex(GetPageId());
   buffer_pool_manager->UnpinPage(parent_page->GetPageId(), false);
   if (idx == GetSize() - 1) {
@@ -219,12 +220,13 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_po
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t{
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_pool_manager,
+                                                    const KeyComparator &comparator) const -> page_id_t {
   if (IsRootPage()) {
     return INVALID_PAGE_ID;
-  } 
-  auto parent_page = reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE*>(
-      buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
+  }
+  auto parent_page =
+      reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE *>(buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
   int idx = parent_page->ValueIndex(GetPageId());
   buffer_pool_manager->UnpinPage(parent_page->GetPageId(), false);
   if (idx == 0) {
@@ -232,7 +234,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_po
   }
   return parent_page->ValueAt(idx - 1);
 }
-
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyAllFrom(BPlusTreeInternalPage *internal_page) -> void {
@@ -246,8 +247,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyAllFrom(BPlusTreeInternalPage *internal
   }
   internal_page->SetSize(0);
 }
-
-
 
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;
