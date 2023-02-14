@@ -244,6 +244,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyAllFrom(BPlusTreeInternalPage *internal
     array_[i].first = internal_page->KeyAt(i - ori_size);
     array_[i].second = internal_page->ValueAt(i - ori_size);
   }
+  internal_page->SetSize(0);
 }
 
 

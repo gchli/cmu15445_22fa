@@ -151,6 +151,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, ValueType &value, co
   IncreaseSize(-1);
   return true;
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveFront() -> void {
   for (int i = 0; i < GetSize() - 1; i++) {
@@ -159,25 +160,6 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveFront() -> void {
   }
   IncreaseSize(-1);
 }
-
-INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t { return GetNextPageId(); }
-
-INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t {
-  if (IsRootPage()) {
-    return INVALID_PAGE_ID;
-  } 
-  auto parent_page = reinterpret_cast<B_PLUS_TREE_INTERNAL_PAGE_TYPE*>(
-      buffer_pool_manager->FetchPage(GetParentPageId())->GetData());
-  int idx = parent_page->IndexOf(KeyAt(0), comparator);
-  buffer_pool_manager->UnpinPage(parent_page->GetPageId(), false);
-  if (idx == 0) {
-    return INVALID_PAGE_ID;
-  }
-  return parent_page->ValueAt(idx - 1).GetPageId();
-}
-
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> void {

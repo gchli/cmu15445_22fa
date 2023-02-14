@@ -58,8 +58,6 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto RemoveFront() -> void;
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
 
-  auto GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
-  auto GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
   auto CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> void;
 
  private:

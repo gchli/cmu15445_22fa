@@ -146,6 +146,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage* old_page, const KeyType &key,
   }
   buffer_pool_manager_->UnpinPage(parent_page_id, true);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::CreateNewRoot(const KeyType &key, const ValueType &value, Transaction *transaction) {
   auto new_page = buffer_pool_manager_->NewPage(&root_page_id_);
@@ -295,7 +296,10 @@ void BPLUSTREE_TYPE::DoRedistribute(BPlusTreePage* page, int &loc, BPlusTreePage
       page_id_t fake = 0;
       from_internal_page->Remove(from_key, fake, comparator_);
       to_internal_page->InsertFront(from_key, from_value);
-      to_internal_page->SetKeyAt(1, sep_key);
+      auto child_page = FetchTreePage(from_value);
+      child_page->SetParentPageId(to_internal_page->GetPageId());
+      buffer_pool_manager_->UnpinPage(child_page->GetPageId(), true);
+      to_internal_page->SetKeyAt(1, sep_key); // ?
       parent_page->SetKeyAt(sep_index, from_key);
     } else {
       auto from_leaf_page = reinterpret_cast<LeafPage*>(from_page);
@@ -313,12 +317,15 @@ void BPLUSTREE_TYPE::DoRedistribute(BPlusTreePage* page, int &loc, BPlusTreePage
     if (!page->IsLeafPage()) {
       auto from_internal_page = reinterpret_cast<InternalPage*>(from_page);
       auto to_internal_page = reinterpret_cast<InternalPage*>(page);
-      // auto from_key = from_internal_page->KeyAt(0);
+      auto from_key = from_internal_page->KeyAt(1);
       auto from_value = from_internal_page->ValueAt(0);
       KeyType sep_key = parent_page->KeyAt(sep_index);
-      to_internal_page->Insert(sep_key, from_value, comparator_);
       from_internal_page->RemoveFront();
-      parent_page->SetKeyAt(sep_index, from_internal_page->KeyAt(0));
+      to_internal_page->Insert(sep_key, from_value, comparator_);
+      auto child_page = FetchTreePage(from_value);
+      child_page->SetParentPageId(to_internal_page->GetPageId());
+      buffer_pool_manager_->UnpinPage(child_page->GetPageId(), true);
+      parent_page->SetKeyAt(sep_index, from_key);
     } else {
       auto from_leaf_page = reinterpret_cast<LeafPage*>(from_page);
       auto to_leaf_page = reinterpret_cast<LeafPage*>(page);
@@ -346,17 +353,31 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage* page, const KeyType &key, [[mayb
     internal_page->Remove(key, removed_page_id, comparator_);
   }
 
-  if (page->IsRootPage() && page->GetSize() == 1) {
-    auto internal_page = reinterpret_cast<InternalPage* >(page);
-    root_page_id_ = internal_page->ValueAt(0);
-    UpdateRootPageId(false);
-    Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
-    auto new_root = reinterpret_cast<LeafPage *>(root_page->GetData());
-    new_root->SetParentPageId(INVALID_PAGE_ID);
-    buffer_pool_manager_->UnpinPage(root_page_id_, true);
-    buffer_pool_manager_->UnpinPage(internal_page->GetPageId(), false);
-    buffer_pool_manager_->DeletePage(internal_page->GetPageId());
-  } else if (page->GetSize() < page->GetMinSize()) {
+  if (page->GetSize() < page->GetMinSize()) {
+    if (page->IsRootPage()) {
+
+      if (page->IsLeafPage()) {
+        root_page_id_ = INVALID_PAGE_ID;
+        buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+        buffer_pool_manager_->DeletePage(page->GetPageId());
+        UpdateRootPageId();
+        return;
+      }
+
+      if (page->GetSize() == 1) {
+        auto internal_page = reinterpret_cast<InternalPage* >(page);
+        root_page_id_ = internal_page->ValueAt(0);
+        UpdateRootPageId(false);
+        Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
+        auto new_root = reinterpret_cast<InternalPage *>(root_page->GetData());
+        new_root->SetParentPageId(INVALID_PAGE_ID);
+        buffer_pool_manager_->UnpinPage(root_page_id_, true);
+        buffer_pool_manager_->UnpinPage(internal_page->GetPageId(), false);
+        buffer_pool_manager_->DeletePage(internal_page->GetPageId());
+      }
+      
+    }
+  } else {
     page_id_t l_page_id = -1;
     page_id_t r_page_id = -1;
     int loc = -1;
@@ -402,7 +423,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
     return;
   }
   DeleteEntry(reinterpret_cast<BPlusTreePage*>(leaf_page), key, transaction);
-
+  buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
 }
 
 /*****************************************************************************
