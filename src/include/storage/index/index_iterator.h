@@ -25,7 +25,8 @@ class IndexIterator {
   // you may define your own constructor based on your member variables
   IndexIterator();
   ~IndexIterator();  // NOLINT
-
+  IndexIterator(B_PLUS_TREE_LEAF_PAGE_TYPE* leaf_page, int index, BufferPoolManager* bpm);
+  
   auto IsEnd() -> bool;
 
   auto operator*() -> const MappingType &;
@@ -38,6 +39,9 @@ class IndexIterator {
 
  private:
   // add your own private member variables here
+  B_PLUS_TREE_LEAF_PAGE_TYPE* cur_page_;
+  int cur_index_;
+  BufferPoolManager* buffer_pool_manager_;
 };
 
 }  // namespace bustub
