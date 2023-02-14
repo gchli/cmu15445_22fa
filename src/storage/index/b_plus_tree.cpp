@@ -136,7 +136,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
   new_page->SetParentPageId(parent_page_id);
   auto parent_page = FetchInternalPage(parent_page_id);
   parent_page->Insert(key, new_page->GetPageId(), comparator_);
-  if (parent_page->GetSize() > parent_page->GetMaxSize()) {
+  if (parent_page->GetSize() == parent_page->GetMaxSize()) {
     auto new_internal_page = SplitInternalPage(parent_page, buffer_pool_manager_);
     // parent_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager_);
     InsertInParent(reinterpret_cast<BPlusTreePage *>(parent_page), new_internal_page->KeyAt(0),
@@ -180,7 +180,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   }
 
   leaf_page->Insert(key, value, comparator_);
-  if (leaf_page->GetSize() > leaf_page->GetMaxSize()) {
+  if (leaf_page->GetSize() == leaf_page->GetMaxSize()) {
     auto new_leaf_page = SplitLeafPage(leaf_page, buffer_pool_manager_);
     // Copy up key to parent
     InsertInParent(reinterpret_cast<BPlusTreePage *>(leaf_page), new_leaf_page->KeyAt(0),

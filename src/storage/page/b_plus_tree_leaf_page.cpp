@@ -36,7 +36,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id, in
   SetPageId(page_id);
   SetParentPageId(parent_id);
   SetSize(0);
-  SetMaxSize(max_size - 1);
+  SetMaxSize(max_size);
   SetPageType(IndexPageType::LEAF_PAGE);
   SetNextPageId(INVALID_PAGE_ID);
 }
@@ -109,7 +109,7 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page,
                                                       BufferPoolManager *buffer_pool_manager) -> void {
   int total_size = GetSize();
-  assert(total_size == GetMaxSize() + 1);
+  assert(total_size == GetMaxSize());
   int idx = total_size / 2;
   // TODO(ligch): Using memcpy() instead?
   // why to_page->array_ isn't private here?

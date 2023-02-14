@@ -98,7 +98,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERN
                                                               BufferPoolManager *buffer_pool_manager) -> void {
   // TODO(ligch): Maybe this function can be reconstruected.
   int total_size = GetSize();
-  assert(total_size == GetMaxSize() + 1);
+  assert(total_size == GetMaxSize());
   int idx = total_size / 2;
   // TODO(ligch): Using memcpy() instead?
   // why to_page->array_ isn't private here?
