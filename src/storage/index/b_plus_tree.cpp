@@ -423,6 +423,29 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
 }
 
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::FindLeftmostLeafPage() -> LeafPage * {
+  auto page = FetchTreePage(root_page_id_);
+  while (!page->IsLeafPage()) {
+    auto internal_page = reinterpret_cast<InternalPage *>(page);
+    page_id_t child_page_id = internal_page->ValueAt(0);
+    buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+    page = FetchTreePage(child_page_id);
+  }
+  return reinterpret_cast<LeafPage *>(page);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::FindRightmostLeafPage() -> LeafPage * {
+  auto page = FetchTreePage(root_page_id_);
+  while (!page->IsLeafPage()) {
+    auto internal_page = reinterpret_cast<InternalPage *>(page);
+    page_id_t child_page_id = internal_page->ValueAt(internal_page->GetSize() - 1);
+    buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+    page = FetchTreePage(child_page_id);
+  }
+  return reinterpret_cast<LeafPage *>(page);
+}
 /*****************************************************************************
  * INDEX ITERATOR
  *****************************************************************************/
@@ -432,7 +455,10 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
+  auto leaf_page = FindLeftmostLeafPage();
+  return INDEXITERATOR_TYPE(leaf_page, 0, buffer_pool_manager_);
+}
 
 /*
  * Input parameter is low key, find the leaf page that contains the input key
@@ -440,7 +466,11 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE()
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
+  auto leaf_page = FindLeafPage(key);
+  int index = leaf_page->IndexOf(key, comparator_);
+  return INDEXITERATOR_TYPE(leaf_page, index, buffer_pool_manager_);
+}
 
 /*
  * Input parameter is void, construct an index iterator representing the end
@@ -448,7 +478,10 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return IN
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE {
+  auto leaf_page = FindRightmostLeafPage();
+  return INDEXITERATOR_TYPE(leaf_page, leaf_page->GetSize(), buffer_pool_manager_);
+}
 
 /**
  * @return Page id of the root of this tree

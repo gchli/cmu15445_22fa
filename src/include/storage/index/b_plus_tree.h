@@ -95,7 +95,8 @@ class BPlusTree {
                   [[maybe_unused]] Transaction *transaction);
   void DoRedistribute(BPlusTreePage *page, int &loc, BPlusTreePage *from_page, const KeyType &key,
                       [[maybe_unused]] Transaction *transaction);
-
+  auto FindLeftmostLeafPage() -> LeafPage *;
+  auto FindRightmostLeafPage() -> LeafPage *;
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 

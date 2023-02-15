@@ -3,6 +3,7 @@
  */
 #include <cassert>
 
+#include "common/config.h"
 #include "storage/index/index_iterator.h"
 
 namespace bustub {
@@ -15,20 +16,49 @@ INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator() = default;
 
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE::IndexIterator(B_PLUS_TREE_LEAF_PAGE_TYPE* leaf_page, int index, BufferPoolManager* bpm): 
-    cur_page_(leaf_page), cur_index_(index), buffer_pool_manager_(bpm) {};
+INDEXITERATOR_TYPE::IndexIterator(B_PLUS_TREE_LEAF_PAGE_TYPE *leaf_page, int index, BufferPoolManager *bpm)
+    : cur_page_(leaf_page), cur_index_(index), buffer_pool_manager_(bpm) {}
 
 INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::~IndexIterator() = default;  // NOLINT
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::IsEnd() -> bool { throw std::runtime_error("unimplemented"); }
+auto INDEXITERATOR_TYPE::IsEnd() -> bool {
+  return cur_page_->GetNextPageId() == INVALID_PAGE_ID && cur_index_ == cur_page_->GetSize();
+}
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { throw std::runtime_error("unimplemented"); }
+auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { return cur_page_->ItemAt(cur_index_); }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & { throw std::runtime_error("unimplemented"); }
+auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
+  if (IsEnd()) {
+    return *this;
+  }
+
+  if (cur_index_ < cur_page_->GetSize()) {
+    cur_index_++;
+  }
+
+  if (cur_index_ == cur_page_->GetSize() && cur_page_->GetNextPageId() != INVALID_PAGE_ID) {
+    auto page_id = cur_page_->GetNextPageId();
+    auto page = buffer_pool_manager_->FetchPage(page_id);
+    buffer_pool_manager_->UnpinPage(cur_page_->GetPageId(), false);
+    cur_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(page->GetData());
+    cur_index_ = 0;
+  }
+  return *this;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::operator==(const IndexIterator &itr) const -> bool {
+  return this->cur_page_ == itr.cur_page_ && this->cur_index_ == itr.cur_index_;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::operator!=(const IndexIterator &itr) const -> bool {
+  return this->cur_page_ != itr.cur_page_ || this->cur_index_ != itr.cur_index_;
+}
 
 template class IndexIterator<GenericKey<4>, RID, GenericComparator<4>>;
 
