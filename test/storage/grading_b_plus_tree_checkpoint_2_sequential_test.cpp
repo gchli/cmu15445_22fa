@@ -320,13 +320,13 @@ TEST(BPlusTreeTests, DeleteTest2) {
 TEST(BPlusTreeTests, ScaleTest) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
-  GenericComparator<8> comparator(key_schema.get());
+  GenericComparator<32> comparator(key_schema.get());
 
   auto disk_manager = new DiskManager("test.db");
   BufferPoolManager *bpm = new BufferPoolManagerInstance(30, disk_manager);
   // create b+ tree
-  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator);
-  GenericKey<8> index_key;
+  BPlusTree<GenericKey<32>, RID, GenericComparator<32>> tree("foo_pk", bpm, comparator);
+  GenericKey<32> index_key;
   RID rid;
   // create transaction
   auto transaction = new Transaction(0);
@@ -366,16 +366,18 @@ TEST(BPlusTreeTests, ScaleTest) {
   }
   EXPECT_EQ(current_key, keys.size() + 1);
 
-  int64_t remove_scale = 99000;
+  int64_t remove_scale = 99990;
   std::vector<int64_t> remove_keys;
   for (int64_t key = 1; key < remove_scale; key++) {
     remove_keys.push_back(key);
   }
   // std::shuffle(remove_keys.begin(), remove_keys.end(), std::mt19937(std::random_device()()));
+  // std::cout << remove_keys.size() << std::endl;
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
   }
+  tree.Draw(bpm, "after_remove.dot");
   start_key = remove_scale;
   current_key = start_key;
   int64_t size = 0;

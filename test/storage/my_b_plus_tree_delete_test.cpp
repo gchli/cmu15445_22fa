@@ -232,9 +232,9 @@ TEST(MyBPlusTreeTests, DeleteTest4) {
     GenericComparator<64> comparator(key_schema.get());
 
     auto disk_manager = new DiskManager("test.db");
-    BufferPoolManager *bpm = new BufferPoolManagerInstance(60, disk_manager);
+    BufferPoolManager *bpm = new BufferPoolManagerInstance(30, disk_manager);
     // create b+ tree
-    BPlusTree<GenericKey<64>, RID, GenericComparator<64>> tree("foo_pk", bpm, comparator, 2, 2);
+    BPlusTree<GenericKey<64>, RID, GenericComparator<64>> tree("foo_pk", bpm, comparator, 2, 3);
     GenericKey<64> index_key;
     RID rid;
     // create transaction
@@ -245,13 +245,12 @@ TEST(MyBPlusTreeTests, DeleteTest4) {
     auto header_page = bpm->NewPage(&page_id);
     (void)header_page;
 
-    /*16 pass, 17 failed. */
-    int scale = 30;  // at first, set a small number(6-10) to find bug
+    int scale = 10;  // at first, set a small number(6-10) to find bug
     std::vector<int64_t> keys(scale);
     for (int i = 0; i < scale; ++i) {
       keys[i] = i + 1;
     }
-    // std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
+    std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
     // std::cout << "\n--- to insert: ";
     // for (auto key : keys) {
     //   std::cout << key << ' ';
@@ -263,15 +262,17 @@ TEST(MyBPlusTreeTests, DeleteTest4) {
       int64_t value = key & 0xFFFFFFFF;
       rid.Set(static_cast<int32_t>(key >> 32), value);
       index_key.SetFromInteger(key);
+      std::cout << key << ' ';
       tree.Insert(index_key, rid, transaction);
+      // tree.Draw(bpm, "after_insert" + std::to_string(key) + ".dot");
     }
-    // tree.Draw(bpm, "after_insert.dot");
-    // std::cout << "--- insert end, delete start ---\n";
+    tree.Draw(bpm, "after_insert.dot");
+    std::cout << "--- insert end, delete start ---\n";
     for (auto key : keys) {
       index_key.SetFromInteger(key);
       // std::cout << "remove: " << key << '\n';
       tree.Remove(index_key, transaction);
-      tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
+      // tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
       c_keys.pop_back();
       std::vector<RID> rids;
       // check key & value pairs

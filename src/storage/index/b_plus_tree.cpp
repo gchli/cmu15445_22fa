@@ -64,7 +64,6 @@ auto BPLUSTREE_TYPE::SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffe
   leaf_page->RedistributeLeafPage(new_leaf_page, buffer_pool_manager);
   new_leaf_page->SetNextPageId(leaf_page->GetNextPageId());
   leaf_page->SetNextPageId(new_page_id);
-  buffer_pool_manager->UnpinPage(new_page_id, true);
   return new_leaf_page;
 }
 
@@ -79,7 +78,7 @@ auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, BufferPoolMa
   auto new_internal_page = reinterpret_cast<InternalPage *>(page->GetData());
   new_internal_page->Init(new_page_id, parent_page_id, internal_max_size_);
   internal_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager);
-  buffer_pool_manager->UnpinPage(new_page_id, true);
+
   return new_internal_page;
 }
 
@@ -110,9 +109,8 @@ auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key) -> LeafPage * {
     int idx = internal_page->IndexOf(key, comparator_);
     page_id_t child_page_id = internal_page->ValueAt(idx);
     page = FetchTreePage(child_page_id);
-    // buffer_pool_manager_->UnpinPage(page_id, false);
+    buffer_pool_manager_->UnpinPage(page_id, false);
     page_id = child_page_id;
-    std::cout << "page_id " << page_id << std::endl;
   }
   return reinterpret_cast<LeafPage *>(page);
 }
@@ -127,8 +125,6 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
     new_page->SetParentPageId(root_page_id_);
     UpdateRootPageId(false);
     root_page->SetupNewRoot(old_page, key, new_page);
-    buffer_pool_manager_->UnpinPage(old_page->GetPageId(), true);
-    buffer_pool_manager_->UnpinPage(new_page->GetPageId(), true);
     buffer_pool_manager_->UnpinPage(root_page_id_, true);
     return;
   }
@@ -149,6 +145,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
     }
     InsertInParent(reinterpret_cast<BPlusTreePage *>(parent_page), new_internal_page->KeyAt(0),
                    reinterpret_cast<BPlusTreePage *>(new_internal_page));
+    buffer_pool_manager_->UnpinPage(new_internal_page->GetPageId(), true);
   }
   buffer_pool_manager_->UnpinPage(parent_page_id, true);
 }
@@ -297,7 +294,7 @@ void BPLUSTREE_TYPE::DoCoalesce(BPlusTreePage *left_page, BPlusTreePage *right_p
     left_internal_page->CopyAllFrom(right_internal_page, buffer_pool_manager_);
   }
   DeleteEntry(reinterpret_cast<BPlusTreePage *>(parent_page), sep_key, transaction);
-  buffer_pool_manager_->UnpinPage(parent_page_id, true);
+  // buffer_pool_manager_->UnpinPage(parent_page_id, true);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -417,12 +414,14 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, [[mayb
       buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
       buffer_pool_manager_->DeletePage(page->GetPageId());
       // assert(buffer_pool_manager_->DeletePage(page->GetPageId()));
-
     } else if (CanRedistribute(page, loc, from_page_id)) {
       auto from_page = FetchTreePage(from_page_id);
       DoRedistribute(page, loc, from_page, key, transaction);
+      buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
       buffer_pool_manager_->UnpinPage(from_page_id, true);
     }
+  } else {
+    buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
   }
 }
 
@@ -447,8 +446,8 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
     buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
     return;
   }
+  // buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);  
   DeleteEntry(reinterpret_cast<BPlusTreePage *>(leaf_page), key, transaction);
-  buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -460,7 +459,6 @@ auto BPLUSTREE_TYPE::FindLeftmostLeafPage() -> LeafPage * {
     buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
     page = FetchTreePage(child_page_id);
   }
-  buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
   return reinterpret_cast<LeafPage *>(page);
 }
 
@@ -473,7 +471,6 @@ auto BPLUSTREE_TYPE::FindRightmostLeafPage() -> LeafPage * {
     buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
     page = FetchTreePage(child_page_id);
   }
-  buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
   return reinterpret_cast<LeafPage *>(page);
 }
 /*****************************************************************************
