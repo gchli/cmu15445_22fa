@@ -232,7 +232,7 @@ TEST(MyBPlusTreeTests, DeleteTest4) {
     GenericComparator<64> comparator(key_schema.get());
 
     auto disk_manager = new DiskManager("test.db");
-    BufferPoolManager *bpm = new BufferPoolManagerInstance(30, disk_manager);
+    BufferPoolManager *bpm = new BufferPoolManagerInstance(60, disk_manager);
     // create b+ tree
     BPlusTree<GenericKey<64>, RID, GenericComparator<64>> tree("foo_pk", bpm, comparator, 2, 2);
     GenericKey<64> index_key;

@@ -110,8 +110,9 @@ auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key) -> LeafPage * {
     int idx = internal_page->IndexOf(key, comparator_);
     page_id_t child_page_id = internal_page->ValueAt(idx);
     page = FetchTreePage(child_page_id);
-    buffer_pool_manager_->UnpinPage(page_id, false);
+    // buffer_pool_manager_->UnpinPage(page_id, false);
     page_id = child_page_id;
+    std::cout << "page_id " << page_id << std::endl;
   }
   return reinterpret_cast<LeafPage *>(page);
 }
