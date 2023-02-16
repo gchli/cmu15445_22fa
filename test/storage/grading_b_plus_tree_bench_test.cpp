@@ -9,10 +9,10 @@
 #include <iostream>
 #include <thread>  // NOLINT
 
-#include "test_util.h"  // NOLINT
 #include "buffer/buffer_pool_manager_instance.h"
 #include "gtest/gtest.h"
 #include "storage/index/b_plus_tree.h"
+#include "test_util.h"  // NOLINT
 
 // Macro for time out mechanism
 #define TEST_TIMEOUT_BEGIN                           \
@@ -28,7 +28,7 @@
 namespace bustub {
 // helper function to launch multiple threads
 template <typename... Args>
-void LaunchParallelTest(uint64_t num_threads, uint64_t txn_id_start, Args &&... args) {
+void LaunchParallelTest(uint64_t num_threads, uint64_t txn_id_start, Args &&...args) {
   std::vector<std::thread> thread_group;
 
   // Launch a group of threads
@@ -184,7 +184,7 @@ void BPlusTreeBenchmarkCall() {
     // lookup all odd keys
     LookupHelper(&tree, remain_keys, txn_start_id);
     // iterate through all the keys in BPlusTree
-    size_t size[[maybe_unused]] = 0;
+    size_t size [[maybe_unused]] = 0;
     for (auto iterator = tree.Begin(); !iterator.IsEnd(); ++iterator) {
       if ((*iterator).first.ToString() % sieve == 1) {
         size++;
@@ -226,5 +226,4 @@ TEST(BPlusTreeTest, BPlusTreeBenchmark) {
   remove("test.log");
   TEST_TIMEOUT_FAIL_END(1000 * 300)
 }
-
 }  // namespace bustub

@@ -4,11 +4,12 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <random>
 
-#include "test_util.h"  // NOLINT
 #include "buffer/buffer_pool_manager_instance.h"
 #include "gtest/gtest.h"
 #include "storage/index/b_plus_tree.h"
+#include "test_util.h"  // NOLINT
 
 namespace bustub {
 
@@ -334,7 +335,7 @@ TEST(BPlusTreeTests, ScaleTest) {
   auto header_page = bpm->NewPage(&page_id);
   (void)header_page;
 
-  int64_t scale = 10000;
+  int64_t scale = 100000;
   std::vector<int64_t> keys;
   for (int64_t key = 1; key < scale; key++) {
     keys.push_back(key);
@@ -365,18 +366,17 @@ TEST(BPlusTreeTests, ScaleTest) {
   }
   EXPECT_EQ(current_key, keys.size() + 1);
 
-  int64_t remove_scale = 9900;
+  int64_t remove_scale = 99000;
   std::vector<int64_t> remove_keys;
   for (int64_t key = 1; key < remove_scale; key++) {
     remove_keys.push_back(key);
   }
-  // std::random_shuffle(remove_keys.begin(), remove_keys.end());
+  // std::shuffle(remove_keys.begin(), remove_keys.end(), std::mt19937(std::random_device()()));
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
   }
-
-  start_key = 9900;
+  start_key = remove_scale;
   current_key = start_key;
   int64_t size = 0;
   index_key.SetFromInteger(start_key);
@@ -386,10 +386,9 @@ TEST(BPlusTreeTests, ScaleTest) {
     size = size + 1;
   }
 
-  EXPECT_EQ(size, 100);
+  EXPECT_EQ(size, scale - remove_scale);
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
-  
   delete transaction;
   delete disk_manager;
   delete bpm;
@@ -470,7 +469,6 @@ TEST(BPlusTreeTests, SequentialMixTest) {
   EXPECT_EQ(size, for_insert.size());
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
-  
   delete transaction;
   delete disk_manager;
   delete bpm;

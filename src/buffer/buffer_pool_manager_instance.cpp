@@ -12,9 +12,11 @@
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include <mutex>  // NOLINT
+#include <string>
 
 #include "common/config.h"
 #include "common/exception.h"
+#include "common/logger.h"
 #include "common/macros.h"
 
 namespace bustub {
@@ -147,6 +149,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   }
   Page *cur_page = &pages_[frame_id];
   if (cur_page->GetPinCount() > 0) {
+    std::cerr << "page " + std::to_string(page_id) + " pin count is " + std::to_string(cur_page->GetPinCount()) << std::endl;
     return false;
   }
   if (cur_page->IsDirty()) {

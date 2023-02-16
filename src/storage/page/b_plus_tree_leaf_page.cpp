@@ -175,11 +175,12 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> vo
   int ori_size = GetSize();
   int new_size = ori_size + leaf_page->GetSize();
   SetSize(new_size);
-  leaf_page->SetSize(0);
+
   for (int i = ori_size; i < new_size; i++) {
     array_[i].first = leaf_page->KeyAt(i - ori_size);
     array_[i].second = leaf_page->ValueAt(i - ori_size);
   }
+  leaf_page->SetSize(0);
 }
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;

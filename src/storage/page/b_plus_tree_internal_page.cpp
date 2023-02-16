@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "buffer/buffer_pool_manager.h"
 #include "common/config.h"
 #include "common/exception.h"
 #include "storage/page/b_plus_tree_internal_page.h"
@@ -108,7 +109,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERN
     auto child_page = buffer_pool_manager->FetchPage(array_[i].second);
     auto child_tree_page = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
     child_tree_page->SetParentPageId(to_page_id);
-    buffer_pool_manager->UnpinPage(array_[i].second,true);
+    buffer_pool_manager->UnpinPage(array_[i].second, true);
   }
   to_page->SetSize(total_size - idx);
   SetSize(idx);
@@ -240,14 +241,17 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetPrevSibling(BufferPoolManager *buffer_po
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyAllFrom(BPlusTreeInternalPage *internal_page) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyAllFrom(BPlusTreeInternalPage *internal_page,
+                                                 BufferPoolManager *buffer_pool_manager) -> void {
   int ori_size = GetSize();
   int new_size = ori_size + internal_page->GetSize();
   SetSize(new_size);
-  internal_page->SetSize(0);
   for (int i = ori_size; i < new_size; i++) {
     array_[i].first = internal_page->KeyAt(i - ori_size);
     array_[i].second = internal_page->ValueAt(i - ori_size);
+    auto child_page = reinterpret_cast<BPlusTreePage *>(buffer_pool_manager->FetchPage(array_[i].second)->GetData());
+    child_page->SetParentPageId(GetPageId());
+    buffer_pool_manager->UnpinPage(child_page->GetPageId(), true);
   }
   internal_page->SetSize(0);
 }

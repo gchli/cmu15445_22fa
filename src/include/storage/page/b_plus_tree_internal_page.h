@@ -12,6 +12,7 @@
 
 #include <queue>
 
+#include "buffer/buffer_pool_manager.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
 
@@ -58,7 +59,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto ValueIndex(const ValueType &value) const -> int;
   auto GetNextSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
   auto GetPrevSibling(BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) const -> page_id_t;
-  auto CopyAllFrom(BPlusTreeInternalPage *internal_page) -> void;
+  auto CopyAllFrom(BPlusTreeInternalPage *internal_page, BufferPoolManager *buffer_pool_manager) -> void;
 
  private:
   // auto InsertAt(int index, const KeyType &key, const ValueType &value) -> bool;
