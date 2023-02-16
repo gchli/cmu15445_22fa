@@ -119,7 +119,6 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE
   assert(total_size == GetMaxSize());
   int idx = total_size / 2;
   // TODO(ligch): Using memcpy() instead?
-  // why to_page->array_ isn't private here?
   for (int i = idx; i < total_size; i++) {
     to_page->array_[i - idx].first = array_[i].first;
     to_page->array_[i - idx].second = array_[i].second;
@@ -146,6 +145,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::IndexOf(const KeyType &key, const KeyComparator
   }
   return l;
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, ValueType &value, const KeyComparator &comparator) -> bool {
   int idx = IndexOf(key, comparator);

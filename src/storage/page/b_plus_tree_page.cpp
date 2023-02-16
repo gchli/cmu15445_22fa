@@ -44,7 +44,7 @@ auto BPlusTreePage::GetMinSize() const -> int {
   if (IsRootPage()) {
     return IsLeafPage() ? 1 : 2;
   }
-  return (max_size_ + 1) / 2;
+  return IsLeafPage() ? max_size_ / 2 : (max_size_ + 1) / 2;
 }
 // TODO(ligch): Recheck this funtion. There're some different implementations.
 

@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <string>
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include "gtest/gtest.h"
@@ -89,6 +90,7 @@ TEST(BPlusTreeTests, InsertTest2) {
     rid.Set(static_cast<int32_t>(key >> 32), value);
     index_key.SetFromInteger(key);
     tree.Insert(index_key, rid, transaction);
+    tree.Draw(bpm, "insert" + std::to_string(key) + ".dot");
   }
 
   std::vector<RID> rids;

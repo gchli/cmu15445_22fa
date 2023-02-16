@@ -119,29 +119,46 @@ auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key) -> LeafPage * {
 
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page) -> void {
+  
   if (old_page->IsRootPage()) {
     auto page = buffer_pool_manager_->NewPage(&this->root_page_id_);
     auto root_page = reinterpret_cast<InternalPage *>(page->GetData());
     root_page->Init(root_page_id_, INVALID_PAGE_ID, internal_max_size_);
     old_page->SetParentPageId(root_page_id_);
     new_page->SetParentPageId(root_page_id_);
-
     UpdateRootPageId(false);
     root_page->SetupNewRoot(old_page, key, new_page);
     buffer_pool_manager_->UnpinPage(old_page->GetPageId(), true);
     buffer_pool_manager_->UnpinPage(new_page->GetPageId(), true);
+    buffer_pool_manager_->UnpinPage(root_page_id_, true);
     return;
   }
+
   auto parent_page_id = old_page->GetParentPageId();
-  new_page->SetParentPageId(parent_page_id);
   auto parent_page = FetchInternalPage(parent_page_id);
-  parent_page->Insert(key, new_page->GetPageId(), comparator_);
-  if (parent_page->GetSize() == parent_page->GetMaxSize()) {
+  if (parent_page->GetSize() < parent_page->GetMaxSize()) {
+    parent_page->Insert(key, new_page->GetPageId(), comparator_);
+    new_page->SetParentPageId(parent_page_id);
+  } else {
     auto new_internal_page = SplitInternalPage(parent_page, buffer_pool_manager_);
     // parent_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager_);
+    Draw(buffer_pool_manager_, "after_split.dot");
+    if (comparator_(key, new_internal_page->KeyAt(0)) < 0) {
+      parent_page->Insert(key, new_page->GetPageId(), comparator_);
+      new_page->SetParentPageId(parent_page_id);
+    } else {
+      new_internal_page->Insert(key, new_page->GetPageId(), comparator_);
+      new_page->SetParentPageId(new_internal_page->GetPageId());
+    }
     InsertInParent(reinterpret_cast<BPlusTreePage *>(parent_page), new_internal_page->KeyAt(0),
                    reinterpret_cast<BPlusTreePage *>(new_internal_page));
   }
+  // if (parent_page->GetSize() == parent_page->GetMaxSize()) {
+  //   auto new_internal_page = SplitInternalPage(parent_page, buffer_pool_manager_);
+  //   // parent_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager_);
+  //   InsertInParent(reinterpret_cast<BPlusTreePage *>(parent_page), new_internal_page->KeyAt(0),
+  //                  reinterpret_cast<BPlusTreePage *>(new_internal_page));
+  // }
   buffer_pool_manager_->UnpinPage(parent_page_id, true);
 }
 
@@ -173,7 +190,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   }
   auto leaf_page = FindLeafPage(key);
   ValueType v{};
-  /* Insert a duplicate key.*/
+  /* Duplicated key.*/
   if (leaf_page->Find(key, v, comparator_)) {
     buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
     return false;
@@ -188,7 +205,6 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     buffer_pool_manager_->UnpinPage(new_leaf_page->GetPageId(), true);
   }
   buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
-
   return true;
 }
 

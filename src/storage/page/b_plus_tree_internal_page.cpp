@@ -30,7 +30,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
   SetPageId(page_id);
   SetParentPageId(parent_id);
   SetSize(0);
-  SetMaxSize(max_size - 1);
+  SetMaxSize(max_size);
   SetPageType(IndexPageType::INTERNAL_PAGE);
 }
 /*
@@ -99,12 +99,16 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERN
   // TODO(ligch): Maybe this function can be reconstruected.
   int total_size = GetSize();
   assert(total_size == GetMaxSize());
-  int idx = total_size / 2;
+  int idx = (total_size + 1) / 2;
   // TODO(ligch): Using memcpy() instead?
-  // why to_page->array_ isn't private here?
+  page_id_t to_page_id = to_page->GetPageId();
   for (int i = idx; i < total_size; i++) {
     to_page->array_[i - idx].first = array_[i].first;
     to_page->array_[i - idx].second = array_[i].second;
+    auto child_page = buffer_pool_manager->FetchPage(array_[i].second);
+    auto child_tree_page = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
+    child_tree_page->SetParentPageId(to_page_id);
+    buffer_pool_manager->UnpinPage(array_[i].second,true);
   }
   to_page->SetSize(total_size - idx);
   SetSize(idx);
