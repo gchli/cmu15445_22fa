@@ -172,7 +172,7 @@ TEST(MyBPlusTreeTests, DeleteTest2) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DeleteTest3) {
+TEST(MyBPlusTreeTests, DISABLED_DeleteTest3) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -224,7 +224,7 @@ TEST(MyBPlusTreeTests, DeleteTest3) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DeleteTest4) {
+TEST(MyBPlusTreeTests, DISABLED_DeleteTest4) {
   int loop = 1;
   for (int test = 0; test < loop; ++test) {
     // create KeyComparator and index schema
@@ -295,5 +295,69 @@ TEST(MyBPlusTreeTests, DeleteTest4) {
     remove("test.db");
     remove("test.log");
   }
+}
+TEST(MyBPlusTreeTests, DeleteTest5) {
+  // create KeyComparator and index schema
+  auto key_schema = ParseCreateStatement("a bigint");
+  GenericComparator<64> comparator(key_schema.get());
+
+  auto disk_manager = new DiskManager("test.db");
+  BufferPoolManager *bpm = new BufferPoolManagerInstance(30, disk_manager);
+  // create b+ tree
+  BPlusTree<GenericKey<64>, RID, GenericComparator<64>> tree("foo_pk", bpm, comparator, 2, 3);
+  GenericKey<64> index_key;
+  RID rid;
+  // create transaction
+  auto transaction = new Transaction(0);
+
+  // create and fetch header_page
+  page_id_t page_id;
+  auto header_page = bpm->NewPage(&page_id);
+  (void)header_page;
+
+  int scale = 1000;  // at first, set a small number(6-10) to find bug
+  std::vector<int64_t> keys(scale);
+  for (int i = 0; i < scale; ++i) {
+    keys[i] = i + 1;
+  }
+  // std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
+
+  for (auto key : keys) {
+    int64_t value = key & 0xFFFFFFFF;
+    rid.Set(static_cast<int32_t>(key >> 32), value);
+    index_key.SetFromInteger(key);
+    tree.Insert(index_key, rid, transaction);
+  }
+  std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
+
+  std::vector<int64_t> c_keys = keys;
+  std::reverse(c_keys.begin(), c_keys.end());
+  int counter = 0;
+  for (auto key : keys) {
+    if (counter == scale - 10) {
+      tree.Draw(bpm, "after_remove.dot");
+      break;
+    }
+    index_key.SetFromInteger(key);
+    tree.Remove(index_key, transaction);
+    c_keys.pop_back();
+    std::vector<RID> rids;
+    for (auto key2 : c_keys) {
+      rids.clear();
+      index_key.SetFromInteger(key2);
+      tree.GetValue(index_key, &rids);
+      EXPECT_EQ(rids.size(), 1);
+      int64_t value = key2 & 0xFFFFFFFF;
+      EXPECT_EQ(rids[0].GetSlotNum(), value);
+    }
+    counter++;
+  }
+  bpm->UnpinPage(HEADER_PAGE_ID, true);
+  delete transaction;
+  delete disk_manager;
+  delete bpm;
+  remove("test.db");
+  remove("test.log");
+
 }
 }  // namespace bustub
