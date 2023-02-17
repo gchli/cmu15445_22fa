@@ -96,8 +96,10 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetupNewRoot(BPlusTreePage *old_page, const
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, std::pair<KeyType, page_id_t>& new_item,
-                                                              BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page,
+                                                              std::pair<KeyType, page_id_t> &new_item,
+                                                              BufferPoolManager *buffer_pool_manager,
+                                                              const KeyComparator &comparator) -> void {
   // TODO(ligch): Maybe this function can be reconstruected.
   int total_size = GetSize() + 1;
   assert(total_size == GetMaxSize() + 1);
@@ -126,7 +128,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERN
   }
   // TODO(ligch): Using memcpy() instead?
   for (int i = l_num - 1; i > 0; i--) {
-
     if (!inserted) {
       if ((i == 1) || (comparator(new_item.first, array_[idx].first) > 0)) {
         array_[i].first = new_item.first;

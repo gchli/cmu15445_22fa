@@ -11,6 +11,7 @@
 #pragma once
 
 #include <queue>
+#include <utility>
 
 #include "buffer/buffer_pool_manager.h"
 #include "common/config.h"
@@ -47,8 +48,8 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   void SetValueAt(int index, const ValueType &value);
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
   auto SetupNewRoot(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page) -> void;
-  auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, std::pair<KeyType, page_id_t>& new_item, BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator)
-      -> void;
+  auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, std::pair<KeyType, page_id_t> &new_item,
+                                BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   void InsertFront(const KeyType &key, const ValueType &value);
   void RemoveFront();

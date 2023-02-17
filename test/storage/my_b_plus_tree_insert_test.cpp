@@ -58,7 +58,7 @@ TEST(MyBPlusTreeTests, InsertTest1) {
     // tree.Draw(bpm, "after_insert_" + std::to_string(key) + ".dot");
   }
   tree.Draw(bpm, "after_insert_all.dot");
-  
+
   std::cout << std::endl;
   std::vector<RID> rids;
   for (auto key : keys) {

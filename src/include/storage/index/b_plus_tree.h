@@ -12,6 +12,7 @@
 
 #include <queue>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "buffer/buffer_pool_manager.h"
@@ -83,7 +84,8 @@ class BPlusTree {
   auto FetchLeafPage(page_id_t page_id) -> LeafPage *;
   auto FetchInternalPage(page_id_t page_id) -> InternalPage *;
   auto SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager) -> LeafPage *;
-  auto SplitInternalPage(InternalPage *internal_page, std::pair<KeyType, page_id_t>& new_item, BufferPoolManager *buffer_pool_manager) -> InternalPage *;
+  auto SplitInternalPage(InternalPage *internal_page, std::pair<KeyType, page_id_t> &new_item,
+                         BufferPoolManager *buffer_pool_manager) -> InternalPage *;
   auto InsertInParent(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page) -> void;
   void UpdateRootPageId(int insert_record = 0);
   void CreateNewRoot(const KeyType &key, const ValueType &value, Transaction *transaction);

@@ -69,8 +69,8 @@ auto BPLUSTREE_TYPE::SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffe
 
 // TODO(ligch): needed to be reconstructed.
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, std::pair<KeyType, page_id_t>& new_item, BufferPoolManager *buffer_pool_manager)
-    -> InternalPage * {
+auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, std::pair<KeyType, page_id_t> &new_item,
+                                       BufferPoolManager *buffer_pool_manager) -> InternalPage * {
   page_id_t new_page_id;
   page_id_t parent_page_id = internal_page->GetParentPageId();
 
@@ -135,7 +135,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
     parent_page->Insert(key, new_page->GetPageId(), comparator_);
     new_page->SetParentPageId(parent_page_id);
   } else {
-    std::pair<KeyType, page_id_t> new_item {key, new_page->GetPageId()};
+    std::pair<KeyType, page_id_t> new_item{key, new_page->GetPageId()};
     auto new_internal_page = SplitInternalPage(parent_page, new_item, buffer_pool_manager_);
     // if (comparator_(key, new_internal_page->KeyAt(1)) < 0) {
     //   parent_page->Insert(key, new_page->GetPageId(), comparator_);
@@ -447,7 +447,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
     buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
     return;
   }
-  // buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);  
+  // buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
   DeleteEntry(reinterpret_cast<BPlusTreePage *>(leaf_page), key, transaction);
 }
 

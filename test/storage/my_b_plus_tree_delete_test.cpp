@@ -358,6 +358,5 @@ TEST(MyBPlusTreeTests, DeleteTest5) {
   delete bpm;
   remove("test.db");
   remove("test.log");
-
 }
 }  // namespace bustub
