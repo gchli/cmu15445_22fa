@@ -16,6 +16,7 @@
 #include "common/config.h"
 #include "common/exception.h"
 #include "storage/page/b_plus_tree_internal_page.h"
+#include "storage/page/hash_table_page_defs.h"
 
 namespace bustub {
 /*****************************************************************************
@@ -95,24 +96,56 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetupNewRoot(BPlusTreePage *old_page, const
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page,
-                                                              BufferPoolManager *buffer_pool_manager) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, std::pair<KeyType, page_id_t>& new_item,
+                                                              BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator) -> void {
   // TODO(ligch): Maybe this function can be reconstruected.
-  int total_size = GetSize();
-  assert(total_size == GetMaxSize());
-  int idx = (total_size + 1) / 2;
-  // TODO(ligch): Using memcpy() instead?
+  int total_size = GetSize() + 1;
+  assert(total_size == GetMaxSize() + 1);
+  int r_num = (total_size + 1) / 2;
+  int l_num = total_size - r_num;
   page_id_t to_page_id = to_page->GetPageId();
-  for (int i = idx; i < total_size; i++) {
-    to_page->array_[i - idx].first = array_[i].first;
-    to_page->array_[i - idx].second = array_[i].second;
-    auto child_page = buffer_pool_manager->FetchPage(array_[i].second);
+  int idx = GetSize() - 1;
+  bool inserted = false;
+  // TODO(ligch): Using memcpy() instead?
+  for (int i = r_num - 1; i >= 0; i--) {
+    assert(idx >= 1);
+    if (!inserted && comparator(new_item.first, array_[idx].first) > 0) {
+      to_page->array_[i].first = new_item.first;
+      to_page->array_[i].second = new_item.second;
+      inserted = true;
+    } else {
+      to_page->array_[i].first = array_[idx].first;
+      to_page->array_[i].second = array_[idx].second;
+      idx--;
+    }
+    auto child_page_id = to_page->array_[i].second;
+    auto child_page = buffer_pool_manager->FetchPage(child_page_id);
     auto child_tree_page = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
     child_tree_page->SetParentPageId(to_page_id);
-    buffer_pool_manager->UnpinPage(array_[i].second, true);
+    buffer_pool_manager->UnpinPage(child_page_id, true);
   }
-  to_page->SetSize(total_size - idx);
-  SetSize(idx);
+  // TODO(ligch): Using memcpy() instead?
+  for (int i = l_num - 1; i > 0; i--) {
+
+    if (!inserted) {
+      if ((i == 1) || (comparator(new_item.first, array_[idx].first) > 0)) {
+        array_[i].first = new_item.first;
+        array_[i].second = new_item.second;
+        inserted = true;
+        auto child_page_id = array_[i].second;
+        auto child_page = buffer_pool_manager->FetchPage(child_page_id);
+        auto child_tree_page = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
+        child_tree_page->SetParentPageId(GetPageId());
+        buffer_pool_manager->UnpinPage(child_page_id, true);
+        continue;
+      }
+    }
+    array_[i].first = array_[idx].first;
+    array_[i].second = array_[idx].second;
+    idx--;
+  }
+  to_page->SetSize(r_num);
+  SetSize(l_num);
 }
 
 INDEX_TEMPLATE_ARGUMENTS

@@ -13,6 +13,7 @@
 #include <queue>
 
 #include "buffer/buffer_pool_manager.h"
+#include "common/config.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
 
@@ -46,7 +47,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   void SetValueAt(int index, const ValueType &value);
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;
   auto SetupNewRoot(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page) -> void;
-  auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager)
+  auto RedistributeInternalPage(B_PLUS_TREE_INTERNAL_PAGE_TYPE *to_page, std::pair<KeyType, page_id_t>& new_item, BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator)
       -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   void InsertFront(const KeyType &key, const ValueType &value);

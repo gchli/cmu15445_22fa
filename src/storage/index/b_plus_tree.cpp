@@ -69,7 +69,7 @@ auto BPLUSTREE_TYPE::SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffe
 
 // TODO(ligch): needed to be reconstructed.
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, BufferPoolManager *buffer_pool_manager)
+auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, std::pair<KeyType, page_id_t>& new_item, BufferPoolManager *buffer_pool_manager)
     -> InternalPage * {
   page_id_t new_page_id;
   page_id_t parent_page_id = internal_page->GetParentPageId();
@@ -77,7 +77,7 @@ auto BPLUSTREE_TYPE::SplitInternalPage(InternalPage *internal_page, BufferPoolMa
   auto page = buffer_pool_manager->NewPage(&new_page_id);
   auto new_internal_page = reinterpret_cast<InternalPage *>(page->GetData());
   new_internal_page->Init(new_page_id, parent_page_id, internal_max_size_);
-  internal_page->RedistributeInternalPage(new_internal_page, buffer_pool_manager);
+  internal_page->RedistributeInternalPage(new_internal_page, new_item, buffer_pool_manager, comparator_);
 
   return new_internal_page;
 }
@@ -135,14 +135,15 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
     parent_page->Insert(key, new_page->GetPageId(), comparator_);
     new_page->SetParentPageId(parent_page_id);
   } else {
-    auto new_internal_page = SplitInternalPage(parent_page, buffer_pool_manager_);
-    if (comparator_(key, new_internal_page->KeyAt(0)) < 0) {
-      parent_page->Insert(key, new_page->GetPageId(), comparator_);
-      new_page->SetParentPageId(parent_page_id);
-    } else {
-      new_internal_page->Insert(key, new_page->GetPageId(), comparator_);
-      new_page->SetParentPageId(new_internal_page->GetPageId());
-    }
+    std::pair<KeyType, page_id_t> new_item {key, new_page->GetPageId()};
+    auto new_internal_page = SplitInternalPage(parent_page, new_item, buffer_pool_manager_);
+    // if (comparator_(key, new_internal_page->KeyAt(1)) < 0) {
+    //   parent_page->Insert(key, new_page->GetPageId(), comparator_);
+    //   new_page->SetParentPageId(parent_page_id);
+    // } else {
+    //   new_internal_page->Insert(key, new_page->GetPageId(), comparator_);
+    //   new_page->SetParentPageId(new_internal_page->GetPageId());
+    // }
     InsertInParent(reinterpret_cast<BPlusTreePage *>(parent_page), new_internal_page->KeyAt(0),
                    reinterpret_cast<BPlusTreePage *>(new_internal_page));
     buffer_pool_manager_->UnpinPage(new_internal_page->GetPageId(), true);

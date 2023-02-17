@@ -320,7 +320,7 @@ TEST(MyBPlusTreeTests, DeleteTest5) {
   for (int i = 0; i < scale; ++i) {
     keys[i] = i + 1;
   }
-  // std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
+  std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
 
   for (auto key : keys) {
     int64_t value = key & 0xFFFFFFFF;
@@ -328,7 +328,7 @@ TEST(MyBPlusTreeTests, DeleteTest5) {
     index_key.SetFromInteger(key);
     tree.Insert(index_key, rid, transaction);
   }
-  std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
+  // std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
 
   std::vector<int64_t> c_keys = keys;
   std::reverse(c_keys.begin(), c_keys.end());
