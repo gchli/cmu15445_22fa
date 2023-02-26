@@ -23,12 +23,13 @@ INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::~IndexIterator() = default;  // NOLINT
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::IsEnd() -> bool {
-  return cur_page_->GetNextPageId() == INVALID_PAGE_ID && cur_index_ == cur_page_->GetSize();
-}
+auto INDEXITERATOR_TYPE::IsEnd() -> bool { return cur_page_ == nullptr; }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { return cur_page_->ItemAt(cur_index_); }
+auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
+  assert(cur_page_ != nullptr);
+  return cur_page_->ItemAt(cur_index_);
+}
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
@@ -40,12 +41,18 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
     cur_index_++;
   }
 
-  if (cur_index_ == cur_page_->GetSize() && cur_page_->GetNextPageId() != INVALID_PAGE_ID) {
-    auto page_id = cur_page_->GetNextPageId();
-    auto page = buffer_pool_manager_->FetchPage(page_id);
+  if (cur_index_ == cur_page_->GetSize()) {
+    auto next_page_id = cur_page_->GetNextPageId();
     buffer_pool_manager_->UnpinPage(cur_page_->GetPageId(), false);
-    cur_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(page->GetData());
     cur_index_ = 0;
+
+    if (next_page_id == INVALID_PAGE_ID) {
+      cur_page_ = nullptr;
+      return *this;
+    }
+
+    auto page = buffer_pool_manager_->FetchPage(next_page_id);
+    cur_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(page->GetData());
   }
   return *this;
 }

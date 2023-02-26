@@ -79,7 +79,7 @@ class BPlusTree {
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
  private:
-  auto FindLeafPage(const KeyType &key) -> LeafPage *;
+  auto FindLeafPage(const KeyType &key, Transaction *transaction) -> LeafPage *;
   auto FetchTreePage(page_id_t page_id) -> BPlusTreePage *;
   auto FetchLeafPage(page_id_t page_id) -> LeafPage *;
   auto FetchInternalPage(page_id_t page_id) -> InternalPage *;
@@ -99,6 +99,10 @@ class BPlusTree {
                       [[maybe_unused]] Transaction *transaction);
   auto FindLeftmostLeafPage() -> LeafPage *;
   auto FindRightmostLeafPage() -> LeafPage *;
+
+  inline void LockRootPage(bool exclusive);
+  inline void UnlockRootPage(bool exclusive);
+
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 
@@ -109,6 +113,7 @@ class BPlusTree {
   page_id_t root_page_id_;
   BufferPoolManager *buffer_pool_manager_;
   KeyComparator comparator_;
+  ReaderWriterLatch tree_latch_;
   int leaf_max_size_;
   int internal_max_size_;
 };

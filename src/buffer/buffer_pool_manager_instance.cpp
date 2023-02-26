@@ -108,10 +108,7 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
     return false;
   }
   Page *cur_page = &pages_[frame_id];
-  if (cur_page->pin_count_ <= 0) {
-    // LOG_WARN("UnpinPg: Page Id is %u, Pin Count is %u", page_id, cur_page->pin_count_);
-    return false;
-  }
+  assert(cur_page->GetPinCount() > 0);
   cur_page->pin_count_--;
   if (is_dirty) {
     cur_page->is_dirty_ = true;
@@ -149,10 +146,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
     return true;
   }
   Page *cur_page = &pages_[frame_id];
-  if (cur_page->GetPinCount() > 0) {
-    // LOG_WARN("DeletePg: Page Id is %u, Pin Count is %u", page_id, cur_page->pin_count_);
-    return false;
-  }
+  assert(cur_page->GetPinCount() == 0);
   if (cur_page->IsDirty()) {
     disk_manager_->WritePage(cur_page->GetPageId(), cur_page->GetData());
   }

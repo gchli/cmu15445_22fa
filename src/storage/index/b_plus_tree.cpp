@@ -7,6 +7,7 @@
 #include "common/exception.h"
 #include "common/logger.h"
 #include "common/rid.h"
+#include "concurrency/transaction.h"
 #include "storage/index/b_plus_tree.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_page.h"
@@ -43,7 +44,7 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
     return false;
   }
   /* 2. Find the target leaf page may contain the key. */
-  auto leaf_page = FindLeafPage(key);
+  auto leaf_page = FindLeafPage(key, transaction);
 
   /* 3. Look up the key in the leaf page. */
   result->resize(1);
@@ -101,7 +102,7 @@ auto BPLUSTREE_TYPE::FetchInternalPage(page_id_t page_id) -> InternalPage * {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key) -> LeafPage * {
+auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, Transaction *transaction) -> LeafPage * {
   auto page_id = root_page_id_;
   auto page = FetchTreePage(page_id);
   while (!page->IsLeafPage()) {
@@ -177,7 +178,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     CreateNewRoot(key, value, transaction);
     return true;
   }
-  auto leaf_page = FindLeafPage(key);
+  auto leaf_page = FindLeafPage(key, transaction);
   ValueType v{};
   /* Duplicated key.*/
   if (leaf_page->Find(key, v, comparator_)) {
@@ -405,6 +406,8 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, [[mayb
     page_id_t r_page_id = -1;
     int loc = -1;
     page_id_t from_page_id = -1;
+
+    // buffer_pool_manager_->GetPinCount(page->GetPageId());
     if (CanCoalesce(page, l_page_id, r_page_id)) {
       auto left_page = FetchTreePage(l_page_id);
       auto right_page = FetchTreePage(r_page_id);
@@ -441,7 +444,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   if (IsEmpty()) {
     return;
   }
-  auto leaf_page = FindLeafPage(key);
+  auto leaf_page = FindLeafPage(key, transaction);
   ValueType v{};
   if (!leaf_page->Find(key, v, comparator_)) {
     buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
@@ -485,6 +488,7 @@ auto BPLUSTREE_TYPE::FindRightmostLeafPage() -> LeafPage * {
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
   auto leaf_page = FindLeftmostLeafPage();
+  // buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
   return INDEXITERATOR_TYPE(leaf_page, 0, buffer_pool_manager_);
 }
 
@@ -495,8 +499,9 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
-  auto leaf_page = FindLeafPage(key);
+  auto leaf_page = FindLeafPage(key, nullptr);
   int index = leaf_page->IndexOf(key, comparator_);
+  // buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
   return INDEXITERATOR_TYPE(leaf_page, index, buffer_pool_manager_);
 }
 
@@ -507,8 +512,10 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE {
-  auto leaf_page = FindRightmostLeafPage();
-  return INDEXITERATOR_TYPE(leaf_page, leaf_page->GetSize(), buffer_pool_manager_);
+  return INDEXITERATOR_TYPE(nullptr, 0, buffer_pool_manager_);
+  // auto leaf_page = FindRightmostLeafPage();
+  // // buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
+  // return INDEXITERATOR_TYPE(leaf_page, leaf_page->GetSize(), buffer_pool_manager_);
 }
 
 /**
@@ -516,6 +523,14 @@ auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE {
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { return root_page_id_; }
+
+INDEX_TEMPLATE_ARGUMENTS
+inline void BPLUSTREE_TYPE::LockRootPage(bool exclusive) { exclusive ? tree_latch_.WLock() : tree_latch_.RLock(); }
+
+INDEX_TEMPLATE_ARGUMENTS
+inline void BPLUSTREE_TYPE::UnlockRootPage(bool exclusive) {
+  exclusive ? tree_latch_.WUnlock() : tree_latch_.RUnlock();
+}
 
 /*****************************************************************************
  * UTILITIES AND DEBUG
