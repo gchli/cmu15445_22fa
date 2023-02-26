@@ -113,8 +113,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Find(const KeyType &key, ValueType &value, cons
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page,
-                                                      BufferPoolManager *buffer_pool_manager) -> void {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page) -> void {
   int total_size = GetSize();
   assert(total_size == GetMaxSize());
   int idx = total_size / 2;

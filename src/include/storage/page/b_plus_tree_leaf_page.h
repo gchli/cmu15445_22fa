@@ -54,7 +54,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto ItemAt(int index) const -> const MappingType &;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
   auto Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const -> bool;
-  auto RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page, BufferPoolManager *buffer_pool_manager) -> void;
+  auto RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page) -> void;
   auto Remove(const KeyType &key, ValueType &value, const KeyComparator &comparator) -> bool;
   auto RemoveFront() -> void;
   auto IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int;

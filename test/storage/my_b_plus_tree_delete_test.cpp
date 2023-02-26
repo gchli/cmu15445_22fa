@@ -172,7 +172,7 @@ TEST(MyBPlusTreeTests, DeleteTest2) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DISABLED_DeleteTest3) {
+TEST(MyBPlusTreeTests, DeleteTest3) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -224,7 +224,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest3) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DISABLED_DeleteTest4) {
+TEST(MyBPlusTreeTests, DeleteTest4) {
   int loop = 1;
   for (int test = 0; test < loop; ++test) {
     // create KeyComparator and index schema
