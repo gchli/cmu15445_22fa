@@ -27,7 +27,7 @@ namespace bustub {
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
 
-enum class OpType {FIND, INSERT, REMOVE};
+enum class OpType { FIND, INSERT, REMOVE };
 /**
  * Main class providing the API for the Interactive B+ Tree.
  *
@@ -91,19 +91,19 @@ class BPlusTree {
   auto ToInternalPage(BPlusTreePage *tree_page) -> InternalPage *;
   auto FetchInternalPage(page_id_t page_id) -> InternalPage *;
 
-
-  auto SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager, Transaction *transaction) -> LeafPage *;
+  auto SplitLeafPage(LeafPage *leaf_page, BufferPoolManager *buffer_pool_manager, Transaction *transaction)
+      -> LeafPage *;
   auto SplitInternalPage(InternalPage *internal_page, std::pair<KeyType, page_id_t> &new_item,
                          BufferPoolManager *buffer_pool_manager, Transaction *transaction) -> InternalPage *;
-  auto InsertInParent(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page, Transaction *transaction) -> void;
+  auto InsertInParent(BPlusTreePage *old_page, const KeyType &key, BPlusTreePage *new_page, Transaction *transaction)
+      -> void;
   void UpdateRootPageId(int insert_record = 0);
   void CreateNewRoot(const KeyType &key, const ValueType &value, Transaction *transaction);
   void DeleteEntry(BPlusTreePage *page, const KeyType &key, Transaction *transaction);
 
   auto CanCoalesce(BPlusTreePage *page, page_id_t &l_page_id, page_id_t &r_page_id, Transaction *transaction) -> bool;
   auto CanRedistribute(BPlusTreePage *page, int &loc, page_id_t &from_page, Transaction *transaction) -> bool;
-  void DoCoalesce(BPlusTreePage *left_page, BPlusTreePage *right_page, const KeyType &key,
-                  Transaction *transaction);
+  void DoCoalesce(BPlusTreePage *left_page, BPlusTreePage *right_page, const KeyType &key, Transaction *transaction);
   void DoRedistribute(BPlusTreePage *page, int &loc, BPlusTreePage *from_page, const KeyType &key,
                       Transaction *transaction);
   auto FindLeftmostLeafPage() -> LeafPage *;
@@ -114,9 +114,7 @@ class BPlusTree {
   void UnlatchAllPages(Transaction *transaction, OpType op_type, bool dirty);
   void DeleteAllPages(Transaction *transaction);
   auto SafeToUnlatchAll(Transaction *transaction, OpType op_type, BPlusTreePage *tree_page) -> bool;
-  
-  
-  
+
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 
@@ -130,7 +128,6 @@ class BPlusTree {
   ReaderWriterLatch tree_latch_;
   int leaf_max_size_;
   int internal_max_size_;
-
 };
 
 }  // namespace bustub

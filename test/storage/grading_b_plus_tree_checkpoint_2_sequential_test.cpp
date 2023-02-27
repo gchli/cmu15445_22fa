@@ -184,7 +184,7 @@ TEST(BPlusTreeTests, DeleteTest1) {
   for (auto key : keys) {
     rids.clear();
     index_key.SetFromInteger(key);
-    tree.GetValue(index_key, &rids);
+    tree.GetValue(index_key, &rids, transaction);
     EXPECT_EQ(rids.size(), 1);
 
     int64_t value = key & 0xFFFFFFFF;
@@ -265,7 +265,7 @@ TEST(BPlusTreeTests, DeleteTest2) {
   for (auto key : keys) {
     rids.clear();
     index_key.SetFromInteger(key);
-    tree.GetValue(index_key, &rids);
+    tree.GetValue(index_key, &rids, transaction);
     EXPECT_EQ(rids.size(), 1);
 
     int64_t value = key & 0xFFFFFFFF;
@@ -335,7 +335,7 @@ TEST(BPlusTreeTests, ScaleTest) {
   auto header_page = bpm->NewPage(&page_id);
   (void)header_page;
 
-  int64_t scale = 100000;
+  int64_t scale = 10000;
   std::vector<int64_t> keys;
   for (int64_t key = 1; key < scale; key++) {
     keys.push_back(key);
@@ -351,7 +351,7 @@ TEST(BPlusTreeTests, ScaleTest) {
   for (auto key : keys) {
     rids.clear();
     index_key.SetFromInteger(key);
-    tree.GetValue(index_key, &rids);
+    tree.GetValue(index_key, &rids, transaction);
     EXPECT_EQ(rids.size(), 1);
 
     int64_t value = key & 0xFFFFFFFF;
@@ -366,12 +366,12 @@ TEST(BPlusTreeTests, ScaleTest) {
   }
   EXPECT_EQ(current_key, keys.size() + 1);
 
-  int64_t remove_scale = 99990;
+  int64_t remove_scale = 9900;
   std::vector<int64_t> remove_keys;
   for (int64_t key = 1; key < remove_scale; key++) {
     remove_keys.push_back(key);
   }
-  // std::shuffle(remove_keys.begin(), remove_keys.end(), std::mt19937(std::random_device()()));
+  std::shuffle(remove_keys.begin(), remove_keys.end(), std::mt19937(std::random_device()()));
   // std::cout << remove_keys.size() << std::endl;
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);

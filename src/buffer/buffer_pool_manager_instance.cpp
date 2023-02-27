@@ -59,7 +59,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   replacer_->RecordAccess(frame_id);
   replacer_->SetEvictable(frame_id, false);
 
-  // if (*page_id == 7) {
+  // if (*page_id == 3) {
   //   std::cout << "page id: " << *page_id << " init." << std::endl;
   // }
   return cur_page;
@@ -69,7 +69,7 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   std::lock_guard<std::mutex> guard(latch_);
   frame_id_t frame_id = -1;
   Page *cur_page = nullptr;
-  // if (page_id == 7) {
+  // if (page_id == 3) {
   //   std::cout << "page id: " << page_id << " fetching." << std::endl;
   // }
   if (page_table_->Find(page_id, frame_id)) {
@@ -114,8 +114,8 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
     return false;
   }
   Page *cur_page = &pages_[frame_id];
-  
-  // if (page_id == 7) {
+
+  // if (page_id == 3) {
   //   std::cout << "page id: " << page_id << " unpining." << std::endl;
   // }
   if (cur_page->GetPinCount() <= 0) {
@@ -160,9 +160,9 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
     return true;
   }
   Page *cur_page = &pages_[frame_id];
-  // if (cur_page->GetPinCount() > 0) {
-  //   std::cout << "page id: " << page_id << " pin count > 0." << std::endl;
-  // }
+  if (cur_page->GetPinCount() > 0) {
+    std::cout << "page id: " << page_id << " pin count > 0." << std::endl;
+  }
   assert(cur_page->GetPinCount() == 0);
 
   if (cur_page->IsDirty()) {
