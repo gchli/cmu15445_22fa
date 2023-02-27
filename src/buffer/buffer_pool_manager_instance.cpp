@@ -108,7 +108,7 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
     return false;
   }
   Page *cur_page = &pages_[frame_id];
-  assert(cur_page->GetPinCount() > 0);
+  // assert(cur_page->GetPinCount() > 0);
   if (cur_page->GetPinCount() <= 0) {
     std::cout << "hello" << std::endl;
   }

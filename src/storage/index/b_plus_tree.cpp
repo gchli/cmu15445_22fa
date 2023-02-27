@@ -622,7 +622,7 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, Transa
  */
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
-  LockTreeRoot(OpType::INSERT, transaction);
+  LockTreeRoot(OpType::REMOVE, transaction);
 
   if (IsEmpty()) {
     UnlatchAllPages(transaction, OpType::REMOVE, false);
@@ -745,15 +745,20 @@ auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { return root_page_id_; }
 
 INDEX_TEMPLATE_ARGUMENTS
 inline void BPLUSTREE_TYPE::LockTreeRoot(OpType op_type, Transaction *transaction) { 
-  op_type == OpType::FIND ? tree_latch_.RLock() : tree_latch_.WLock(); 
-  if (transaction != nullptr) {
-    transaction->AddIntoPageSet(nullptr);
+  if (transaction == nullptr) {
+    return;
   }
+
+  op_type == OpType::FIND ? tree_latch_.RLock() : tree_latch_.WLock();
+  transaction->AddIntoPageSet(nullptr);
+  // std::cout << "lock the root" << std::endl;
+
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 inline void BPLUSTREE_TYPE::UnlockTreeRoot(OpType op_type) {
   op_type == OpType::FIND ? tree_latch_.RUnlock() : tree_latch_.WUnlock();
+  // std::cout << "unlock the root" << std::endl;
 }
 
 /*****************************************************************************
