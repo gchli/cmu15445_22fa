@@ -57,7 +57,6 @@ TEST(BPlusTreeTests, DeleteTest1) {
     int64_t value = key & 0xFFFFFFFF;
     EXPECT_EQ(rids[0].GetSlotNum(), value);
   }
-
   std::vector<int64_t> remove_keys = {1, 5};
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);

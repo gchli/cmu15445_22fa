@@ -236,9 +236,8 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
       buffer_pool_manager_->UnpinPage(new_internal_page->GetPageId(), true);
     }
   }
-  if (transaction == nullptr) {
-    buffer_pool_manager_->UnpinPage(parent_page_id, true);
-  }
+  buffer_pool_manager_->UnpinPage(parent_page_id, true);
+
   // buffer_pool_manager_->UnpinPage(parent_page_id, true);
 }
 
@@ -337,13 +336,14 @@ auto BPLUSTREE_TYPE::CanCoalesce(BPlusTreePage *page, page_id_t &l_page_id, page
       } else {
         buffer_pool_manager_->UnpinPage(left_sibling_page_id, false);
       }
+      buffer_pool_manager_->UnpinPage(parent_page_id, false);
       return true;
     }
     if (transaction != nullptr) {
       left_page->WUnlatch();
-    } else {
-      buffer_pool_manager_->UnpinPage(left_sibling_page_id, false);
     }
+    buffer_pool_manager_->UnpinPage(left_sibling_page_id, false);
+    
   }
 
   auto right_sibling_page_id =
@@ -364,14 +364,13 @@ auto BPLUSTREE_TYPE::CanCoalesce(BPlusTreePage *page, page_id_t &l_page_id, page
         buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
       }
       // buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
+      buffer_pool_manager_->UnpinPage(parent_page_id, false);
       return true;
     }
     if (transaction != nullptr) {
       right_page->WUnlatch();
-    } else {
-      buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
     }
-    // buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
+    buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
   }
   buffer_pool_manager_->UnpinPage(parent_page_id, false);
   return false;
@@ -409,9 +408,9 @@ auto BPLUSTREE_TYPE::CanRedistribute(BPlusTreePage *page, int &loc, page_id_t &f
     }
     if (transaction != nullptr) {
       right_page->WUnlatch();
-    } else {
-      buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
     }
+    buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
+
     // buffer_pool_manager_->UnpinPage(right_sibling_page_id, false);
   }
 
@@ -419,6 +418,9 @@ auto BPLUSTREE_TYPE::CanRedistribute(BPlusTreePage *page, int &loc, page_id_t &f
   if (left_sibling_page_id != INVALID_PAGE_ID) {
     auto left_page = FetchPage(left_sibling_page_id);
     auto left_sibling_page = ToTreePage(left_page);
+    if (transaction != nullptr) {
+      left_page->WLatch();
+    }
     if (left_sibling_page->GetSize() > left_sibling_page->GetMinSize()) {
       loc = 0;
       from_page = left_sibling_page_id;
@@ -433,9 +435,9 @@ auto BPLUSTREE_TYPE::CanRedistribute(BPlusTreePage *page, int &loc, page_id_t &f
     }
     if (transaction != nullptr) {
       left_page->WUnlatch();
-    } else {
-      buffer_pool_manager_->UnpinPage(left_sibling_page_id, false);
-    }
+    } 
+    buffer_pool_manager_->UnpinPage(left_sibling_page_id, false);
+    
     // buffer_pool_manager_->UnpinPage(left_sibling_page_id, false);
   }
   buffer_pool_manager_->UnpinPage(parent_page_id, false);
@@ -562,7 +564,7 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, Transa
         UpdateRootPageId(false);
         Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
         if (transaction != nullptr) {
-          root_page->WLatch();
+          // root_page->WLatch();
           transaction->AddIntoPageSet(root_page);
         }
         auto new_root = ToInternalPage(root_page);
@@ -596,17 +598,25 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, Transa
       buffer_pool_manager_->UnpinPage(l_page_id, true);
       /* Do we need to set dirty to a readily deleted page? */
       buffer_pool_manager_->UnpinPage(r_page_id, true);
-      buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
-      buffer_pool_manager_->DeletePage(page->GetPageId());
+      if (transaction != nullptr) {
+        transaction->AddIntoDeletedPageSet(page->GetPageId());
+      } else {
+        buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+        buffer_pool_manager_->DeletePage(page->GetPageId());
+      }
       // assert(buffer_pool_manager_->DeletePage(page->GetPageId()));
     } else if (CanRedistribute(page, loc, from_page_id, transaction)) {
       auto from_page = FetchTreePage(from_page_id);
       DoRedistribute(page, loc, from_page, key, transaction);
-      buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
       buffer_pool_manager_->UnpinPage(from_page_id, true);
+      if (transaction == nullptr) {
+        buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+      }
     }
   } else {
-    buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+    if (transaction == nullptr) {
+      buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+    }
   }
 }
 
