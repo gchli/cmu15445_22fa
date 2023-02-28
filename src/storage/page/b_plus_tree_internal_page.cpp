@@ -42,6 +42,9 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const -> KeyType {
   // replace with your own code
+  if (index < 0 || index >= GetSize()) {
+    std::cout << "hello" << std::endl;
+  }
   assert(index >= 0 && index < GetSize());
   return array_[index].first;
 }
@@ -58,7 +61,11 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType {
+  if (index < 0 || index >= GetSize()) {
+    std::cout << "hello" << std::endl;
+  }
   assert(index >= 0 && index < GetSize());
+
   return array_[index].second;
 }
 

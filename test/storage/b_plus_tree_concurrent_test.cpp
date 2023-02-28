@@ -119,7 +119,7 @@ TEST(BPlusTreeConcurrentTest, InsertTest1) {
   for (int64_t key = 1; key < scale_factor; key++) {
     keys.push_back(key);
   }
-  LaunchParallelTest(2, InsertHelper, &tree, keys);
+  LaunchParallelTest(10, InsertHelper, &tree, keys);
 
   std::vector<RID> rids;
   GenericKey<8> index_key;
@@ -222,7 +222,7 @@ TEST(BPlusTreeConcurrentTest, DeleteTest1) {
   InsertHelper(&tree, keys);
 
   std::vector<int64_t> remove_keys = {1, 5, 3, 4};
-  LaunchParallelTest(2, DeleteHelper, &tree, remove_keys);
+  LaunchParallelTest(5, DeleteHelper, &tree, remove_keys);
 
   int64_t start_key = 2;
   int64_t current_key = start_key;
@@ -265,7 +265,7 @@ TEST(BPlusTreeConcurrentTest, DeleteTest2) {
   InsertHelper(&tree, keys);
 
   std::vector<int64_t> remove_keys = {1, 4, 3, 2, 5, 6};
-  LaunchParallelTest(2, DeleteHelperSplit, &tree, remove_keys, 2);
+  LaunchParallelTest(3, DeleteHelperSplit, &tree, remove_keys, 2);
 
   int64_t start_key = 7;
   int64_t current_key = start_key;
@@ -294,7 +294,7 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
   GenericComparator<8> comparator(key_schema.get());
 
   auto *disk_manager = new DiskManager("test.db");
-  BufferPoolManager *bpm = new BufferPoolManagerInstance(50, disk_manager);
+  BufferPoolManager *bpm = new BufferPoolManagerInstance(30, disk_manager);
   // create b+ tree
   BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator);
   GenericKey<8> index_key;
@@ -309,13 +309,13 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
 
   // concurrent insert
   keys.clear();
-  for (int i = 6; i <= 10; i++) {
+  for (int i = 6; i <= 50; i++) {
     keys.push_back(i);
   }
-  LaunchParallelTest(1, InsertHelper, &tree, keys);
+  LaunchParallelTest(2, InsertHelper, &tree, keys);
   // concurrent delete
   std::vector<int64_t> remove_keys = {1, 4, 3, 5, 6};
-  LaunchParallelTest(1, DeleteHelper, &tree, remove_keys);
+  LaunchParallelTest(2, DeleteHelper, &tree, remove_keys);
 
   int64_t start_key = 2;
   int64_t size = 0;
@@ -324,7 +324,7 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
     size = size + 1;
   }
 
-  EXPECT_EQ(size, 5);
+  EXPECT_EQ(size, 45);
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
   delete disk_manager;
