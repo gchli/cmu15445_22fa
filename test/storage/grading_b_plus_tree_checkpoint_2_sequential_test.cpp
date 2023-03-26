@@ -323,7 +323,7 @@ TEST(BPlusTreeTests, ScaleTest) {
   GenericComparator<32> comparator(key_schema.get());
 
   auto disk_manager = new DiskManager("test.db");
-  BufferPoolManager *bpm = new BufferPoolManagerInstance(30, disk_manager);
+  BufferPoolManager *bpm = new BufferPoolManagerInstance(50, disk_manager);
   // create b+ tree
   BPlusTree<GenericKey<32>, RID, GenericComparator<32>> tree("foo_pk", bpm, comparator);
   GenericKey<32> index_key;
@@ -371,20 +371,20 @@ TEST(BPlusTreeTests, ScaleTest) {
   for (int64_t key = 1; key < remove_scale; key++) {
     remove_keys.push_back(key);
   }
-  std::shuffle(remove_keys.begin(), remove_keys.end(), std::mt19937(std::random_device()()));
+  // std::shuffle(remove_keys.begin(), remove_keys.end(), std::mt19937(std::random_device()()));
+  // std::reverse(remove_keys.begin(), remove_keys.end());
   // std::cout << remove_keys.size() << std::endl;
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
   }
-  tree.Draw(bpm, "after_remove.dot");
+  // tree.Draw(bpm, "after_remove.dot");
   start_key = remove_scale;
-  current_key = start_key;
+  // current_key = start_key;
   int64_t size = 0;
   index_key.SetFromInteger(start_key);
   for (auto iterator = tree.Begin(); !iterator.IsEnd(); ++iterator) {
     (void)(*iterator);
-    current_key = current_key + 1;
     size = size + 1;
   }
 

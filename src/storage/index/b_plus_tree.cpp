@@ -46,7 +46,6 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
     return false;
   }
 
-
   /* 2. Find the target leaf page may contain the key. */
   auto leaf_page = FindLeafPage(key, OpType::FIND, transaction);
 
@@ -204,7 +203,7 @@ auto BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *old_page, const KeyType &key,
                                     Transaction *transaction) -> void {
   if (old_page->IsRootPage()) {
     auto new_root_page = buffer_pool_manager_->NewPage(&this->root_page_id_);
-    
+
     if (transaction != nullptr) {
       new_root_page->WLatch();
       transaction->AddIntoPageSet(new_root_page);
@@ -453,7 +452,7 @@ void BPLUSTREE_TYPE::DoCoalesce(BPlusTreePage *left_page, BPlusTreePage *right_p
   auto parent_page = FetchInternalPage(parent_page_id);
   int sep_index = parent_page->ValueIndex(right_page->GetPageId());
   KeyType sep_key = parent_page->KeyAt(sep_index);
-  //todo(ligch): reconstruct this part
+  // todo(ligch): reconstruct this part
   if (left_page->IsLeafPage()) {
     auto left_leaf_page = ToLeafPage(left_page);
     auto right_leaf_page = ToLeafPage(right_page);
@@ -467,7 +466,6 @@ void BPLUSTREE_TYPE::DoCoalesce(BPlusTreePage *left_page, BPlusTreePage *right_p
   }
   buffer_pool_manager_->UnpinPage(parent_page_id, true);
   DeleteEntry(reinterpret_cast<BPlusTreePage *>(parent_page), sep_key, transaction);
-
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -535,7 +533,7 @@ void BPLUSTREE_TYPE::DoRedistribute(BPlusTreePage *page, int &loc, BPlusTreePage
 
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, Transaction *transaction) {
-  //todo(ligch): reconstruct this part
+  // todo(ligch): reconstruct this part
   if (page->IsLeafPage()) {
     ValueType removed_value{};
     auto leaf_page = ToLeafPage(page);
@@ -587,7 +585,6 @@ void BPLUSTREE_TYPE::DeleteEntry(BPlusTreePage *page, const KeyType &key, Transa
       }
       return;
     }
-
 
     page_id_t l_page_id = -1;
     page_id_t r_page_id = -1;

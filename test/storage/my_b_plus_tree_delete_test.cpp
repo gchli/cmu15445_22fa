@@ -14,7 +14,7 @@
 
 namespace bustub {
 
-TEST(MyBPlusTreeTests, DISABLED_DeleteTest1) {
+TEST(MyBPlusTreeTests, DeleteTest1) {
   // create KeyComparator and index schema
 
   auto key_schema = ParseCreateStatement("a bigint");
@@ -41,7 +41,6 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest1) {
     index_key.SetFromInteger(key);
     tree.Insert(index_key, rid, transaction);
   }
-
   std::vector<RID> rids;
   for (auto key : keys) {
     rids.clear();
@@ -64,11 +63,12 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest1) {
   }
 
   EXPECT_EQ(current_key, keys.size() + 1);
-  tree.Draw(bpm, "before_remove.dot");
+  // tree.Draw(bpm, "before_remove.dot");
   std::vector<int64_t> remove_keys = {1, 5};
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
+    // tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
   }
 
   start_key = 2;
@@ -93,7 +93,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest1) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DISABLED_DeleteTest2) {
+TEST(MyBPlusTreeTests, DeleteTest2) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -119,7 +119,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest2) {
     index_key.SetFromInteger(key);
     tree.Insert(index_key, rid, transaction);
   }
-  tree.Draw(bpm, "after_insert.dot");
+  // tree.Draw(bpm, "after_insert.dot");
 
   std::vector<RID> rids;
   for (auto key : keys) {
@@ -147,7 +147,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest2) {
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
-    tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
+    // tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
   }
 
   start_key = 2;
@@ -172,7 +172,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest2) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DISABLED_DeleteTest3) {
+TEST(MyBPlusTreeTests, DeleteTest3) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -224,7 +224,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest3) {
   remove("test.log");
 }
 
-TEST(MyBPlusTreeTests, DISABLED_DeleteTest4) {
+TEST(MyBPlusTreeTests, DeleteTest4) {
   int loop = 1;
   for (int test = 0; test < loop; ++test) {
     // create KeyComparator and index schema
@@ -267,14 +267,14 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest4) {
       tree.Insert(index_key, rid, transaction);
     }
     std::cout << std::endl;
-    tree.Draw(bpm, "after_insert.dot");
+    // tree.Draw(bpm, "after_insert.dot");
     // std::cout << "--- insert end, delete start ---\n";
     std::cout << "Remove: ";
     for (auto key : keys) {
       index_key.SetFromInteger(key);
       std::cout << key << ", ";
       tree.Remove(index_key, transaction);
-      tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
+      // tree.Draw(bpm, "after_remove" + std::to_string(key) + ".dot");
       c_keys.pop_back();
       std::vector<RID> rids;
       // check key & value pairs
@@ -288,6 +288,7 @@ TEST(MyBPlusTreeTests, DISABLED_DeleteTest4) {
         EXPECT_EQ(rids[0].GetSlotNum(), value);
       }
     }
+    std::cout << std::endl;
     bpm->UnpinPage(HEADER_PAGE_ID, true);
     delete transaction;
     delete disk_manager;
@@ -304,7 +305,7 @@ TEST(MyBPlusTreeTests, DeleteTest5) {
   auto disk_manager = new DiskManager("test.db");
   BufferPoolManager *bpm = new BufferPoolManagerInstance(20, disk_manager);
   // create b+ tree
-  BPlusTree<GenericKey<64>, RID, GenericComparator<64>> tree("foo_pk", bpm, comparator, 5, 6);
+  BPlusTree<GenericKey<64>, RID, GenericComparator<64>> tree("foo_pk", bpm, comparator, 2, 3);
   GenericKey<64> index_key;
   RID rid;
   // create transaction
@@ -315,34 +316,34 @@ TEST(MyBPlusTreeTests, DeleteTest5) {
   auto header_page = bpm->NewPage(&page_id);
   (void)header_page;
 
-  int scale = 30;  // at first, set a small number(6-10) to find bug
+  int scale = 10000;  // at first, set a small number(6-10) to find bug
   std::vector<int64_t> keys(scale);
   for (int i = 0; i < scale; ++i) {
     keys[i] = i + 1;
   }
   std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
-  std::cout << "Insert: ";
+  // std::cout << "Insert: ";
   for (auto key : keys) {
     int64_t value = key & 0xFFFFFFFF;
     rid.Set(static_cast<int32_t>(key >> 32), value);
     index_key.SetFromInteger(key);
     tree.Insert(index_key, rid, transaction);
-    std::cout << key << ", ";
+    // std::cout << key << ", ";
   }
   std::cout << std::endl;
   std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));
-  std::cout << "Remove: ";
+  // std::cout << "Remove: ";
   std::vector<int64_t> c_keys = keys;
   std::reverse(c_keys.begin(), c_keys.end());
   // int counter = 0;
   for (auto key : keys) {
-    // if (counter == scale - 10) {
-    //   tree.Draw(bpm, "after_remove.dot");
+    // if (counter == scale - 5) {
+    //   tree.Draw(bpm, "last5.dot");
     //   break;
     // }
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
-    std::cout << key << ", ";
+    // std::cout << key << ", ";
     c_keys.pop_back();
     std::vector<RID> rids;
     for (auto key2 : c_keys) {
