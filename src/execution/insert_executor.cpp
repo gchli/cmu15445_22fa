@@ -20,25 +20,22 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
                                std::unique_ptr<AbstractExecutor> &&child_executor)
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
-void InsertExecutor::Init() {
-  child_executor_->Init();
-  //	throw NotImplementedException("InsertExecutor is not implemented");
-}
+void InsertExecutor::Init() { child_executor_->Init(); }
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple child_tuple;
   bool status = child_executor_->Next(&child_tuple, rid);
-	std::vector<Value> values{};
-	values.reserve(GetOutputSchema().GetColumnCount());
-	values.emplace_back(TypeId::INTEGER, 0);
-	*tuple = Tuple(values, &GetOutputSchema());
+  std::vector<Value> values{};
+  values.reserve(GetOutputSchema().GetColumnCount());
+  values.emplace_back(TypeId::INTEGER, 0);
+  *tuple = Tuple(values, &GetOutputSchema());
   if (not_end_ && !status) {
-	  not_end_ = false;
+    not_end_ = false;
     return true;
   }
   not_end_ = false;
   if (!status) {
-	return false;
+    return false;
   }
   int count = 0;
   while (status) {

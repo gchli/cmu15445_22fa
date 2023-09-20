@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <list>
 #include <mutex>  // NOLINT
 #include <unordered_map>
@@ -148,7 +149,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   const size_t bucket_size_ = 4;
 
   /** Array of buffer pool pages. */
-  Page *pages_;
+  Page *pages_;  // frame_id在这个数组中起到index的作用
   /** Pointer to the disk manager. */
   DiskManager *disk_manager_ __attribute__((__unused__));
   /** Pointer to the log manager. Please ignore this for P1. */
@@ -176,8 +177,9 @@ class BufferPoolManagerInstance : public BufferPoolManager {
     // This is a no-nop right now without a more complex data structure to track deallocated pages
   }
 
- private:
-  auto GetOnePage(frame_id_t &frame_id) -> Page *;
   // TODO(student): You may add additional private members and helper functions
+  void ResetPage(frame_id_t frame_id, page_id_t page_id);
+  // 取一个新frame,先从free_list_中找,再去replace_中找,当在replace_中找到时,注意写回脏页,成功返回true
+  auto NewFrame(frame_id_t *frame_id) -> bool;
 };
 }  // namespace bustub

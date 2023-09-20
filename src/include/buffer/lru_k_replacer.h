@@ -12,18 +12,20 @@
 
 #pragma once
 
+#include <cstddef>
 #include <limits>
 #include <list>
-#include <memory>
 #include <mutex>  // NOLINT
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "common/config.h"
 #include "common/macros.h"
+#include "type/limits.h"
+#include "type/timestamp_type.h"
 
 namespace bustub {
-
 /**
  * LRUKReplacer implements the LRU-k replacement policy.
  *
@@ -45,7 +47,7 @@ class LRUKReplacer {
    * @param num_frames the maximum number of frames the LRUReplacer will be required to store
    */
   explicit LRUKReplacer(size_t num_frames, size_t k);
-  /* Why using explicit to this construct function with 2 args? --ligch*/
+
   DISALLOW_COPY_AND_MOVE(LRUKReplacer);
 
   /**
@@ -132,53 +134,20 @@ class LRUKReplacer {
    * @return size_t
    */
   auto Size() -> size_t;
-  class FrameInfo {
-   public:
-    enum FrameLocation { history, cache };
-    FrameInfo() = default;
-    FrameInfo(frame_id_t frame_id, size_t timestamp)
-        : frame_id_(frame_id),
-          access_timestamp_(timestamp),
-          access_count_(0),
-          location_(FrameLocation::history),
-          evictable_(true) {}
-
-    inline auto GetLocation() const -> FrameLocation { return location_; }
-
-    inline auto GetTimestamp() const -> size_t { return access_timestamp_; }
-    inline auto SetTimestamp(size_t timestamp) -> void { access_timestamp_ = timestamp; }
-
-    inline auto SetLocation(FrameLocation location) -> void { location_ = location; }
-
-    inline auto GetAccessCount() const -> size_t { return access_count_; }
-
-    inline auto SetEvictable(bool evictable) -> void { evictable_ = evictable; }
-    inline auto IsEvictable() const -> bool { return evictable_; }
-    inline auto IncrementAccessCount() -> void { access_count_++; }
-
-    ~FrameInfo() = default;
-
-   private:
-    [[maybe_unused]] frame_id_t frame_id_;
-    size_t access_timestamp_;
-    size_t access_count_;
-    FrameLocation location_;
-    bool evictable_;
-  };
 
  private:
   // TODO(student): implement me! You can replace these member variables as you like.
   // Remove maybe_unused if you start using them.
-  size_t current_timestamp_{0};
-  size_t curr_size_{0};
-  size_t replacer_size_;
-  size_t k_;
+  [[maybe_unused]] size_t current_timestamp_{0};
+  size_t curr_size_{0};   // 表示现在的可被evict的数量
+  size_t replacer_size_;  // 表示最大的size
+  size_t k_;              // 这个代表了LRU-K中的K
   std::mutex latch_;
-  std::unordered_map<frame_id_t, FrameInfo> frame_info_map_;
-  // TODO(ligch): using priority queue to optimize?
-  std::list<frame_id_t> history_list_;
-  std::list<frame_id_t> cache_list_;
-  inline auto IncreseTimestamp() -> void { current_timestamp_++; }
+  std::list<frame_id_t> history_{};
+  std::list<frame_id_t> cache_{};
+  std::unordered_map<frame_id_t, std::pair<size_t, std::list<frame_id_t>::iterator>> history_map_{};
+  std::unordered_map<frame_id_t, std::list<frame_id_t>::iterator> cache_map_{};
+  std::vector<bool> is_evictable_;
 };
 
 }  // namespace bustub

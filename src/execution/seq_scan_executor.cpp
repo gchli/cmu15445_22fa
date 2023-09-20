@@ -19,9 +19,7 @@ SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNod
       plan_(plan),
       iterator_(exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_->Begin(exec_ctx_->GetTransaction())) {}
 
-void SeqScanExecutor::Init() {
-  //	throw NotImplementedException("SeqScanExecutor is not implemented");
-}
+void SeqScanExecutor::Init() {}
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   auto oid = plan_->GetTableOid();

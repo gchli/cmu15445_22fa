@@ -9,16 +9,16 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <algorithm>
 #include <sstream>
+#include <utility>
 
 #include "common/config.h"
 #include "common/exception.h"
 #include "common/logger.h"
 #include "common/rid.h"
-#include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
-#include "type/value.h"
 
 namespace bustub {
 
@@ -33,11 +33,12 @@ namespace bustub {
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id, int max_size) {
+  SetPageType(IndexPageType::LEAF_PAGE);
   SetPageId(page_id);
   SetParentPageId(parent_id);
-  SetSize(0);
   SetMaxSize(max_size);
-  SetPageType(IndexPageType::LEAF_PAGE);
+  // 将初始化的size设置为0
+  SetSize(0);
   SetNextPageId(INVALID_PAGE_ID);
 }
 
@@ -57,86 +58,28 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_pa
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
   // replace with your own code
-  assert(index >= 0 && index < GetSize());
+  // assert(index < GetSize());
   return array_[index].first;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const -> ValueType {
   // replace with your own code
-  assert(index >= 0 && index < GetSize());
+  assert(index < GetSize());
   return array_[index].second;
 }
 
-// must be const MappingType& to avoid copy
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::ItemAt(int index) const -> const MappingType & {
-  assert(index >= 0 && index < GetSize());
-  return array_[index];
-}
-
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetItem(int index) -> const MappingType & { return array_[index]; }
+// 返回array_中第一个大于等于key的下标
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator)
-    -> int {
-  // replace with your own code
-  int idx = IndexOf(key, comparator);
-  int cur_size = GetSize();
-  assert(idx <= cur_size);
-
-  if (idx < cur_size && comparator(KeyAt(idx), key) == 0) {
-    // TODO(ligch): Recheck this. Update or do nothing?
-    array_[idx].second = value;
-  } else {
-    // TODO(ligch): memcpy maybe more faster?
-    for (int i = cur_size; i > idx; i--) {
-      array_[i].first = array_[i - 1].first;
-      array_[i].second = array_[i - 1].second;
-    }
-    array_[idx].first = key;
-    array_[idx].second = value;
-    IncreaseSize(1);
-  }
-
-  return GetSize();
-}
-
-/* Find the value of the corresponding key. If not exists, return false. */
-INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Find(const KeyType &key, ValueType &value, const KeyComparator &comparator) const
-    -> bool {
-  int idx = IndexOf(key, comparator);
-  if (idx >= GetSize() || comparator(KeyAt(idx), key) != 0) {
-    return false;
-  }
-  value = ValueAt(idx);
-  return true;
-}
-
-INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::RedistributeLeafPage(B_PLUS_TREE_LEAF_PAGE_TYPE *to_page) -> void {
-  int total_size = GetSize();
-  assert(total_size == GetMaxSize());
-  int idx = total_size / 2;
-  // TODO(ligch): Using memcpy() instead?
-  for (int i = idx; i < total_size; i++) {
-    to_page->array_[i - idx].first = array_[i].first;
-    to_page->array_[i - idx].second = array_[i].second;
-  }
-  to_page->SetSize(total_size - idx);
-  SetSize(idx);
-}
-
-/* array_[l]'s key is larger than or equal to the parameter key. */
-INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::IndexOf(const KeyType &key, const KeyComparator &comparator) const -> int {
-  // replace with your own code
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator &comp) const -> int {
   int l = 0;
   int r = GetSize();
   while (l < r) {
-    /*If # of elements is even, choose the left one as middle.
-      To prevent infinite loop, we can't assign mid to left below. */
-    int mid = (r - l) / 2 + l;
-    if (comparator(array_[mid].first, key) < 0) {
+    int mid = l + (r - l) / 2;
+    assert(mid < GetSize());
+    if (comp(KeyAt(mid), key) < 0) {
       l = mid + 1;
     } else {
       r = mid;
@@ -144,44 +87,93 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::IndexOf(const KeyType &key, const KeyComparator
   }
   return l;
 }
-
+// 正常情况是要返回false的，返回true代表这个叶子节点中有这个key，而要求的是不重复
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, ValueType &value, const KeyComparator &comparator) -> bool {
-  int idx = IndexOf(key, comparator);
-  if (idx >= GetSize() || comparator(KeyAt(idx), key) != 0) {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::LookUp(const KeyType &key, ValueType *value, KeyComparator comp) -> bool {
+  int l = KeyIndex(key, comp);
+  // return !static_cast<bool>(l == GetSize() || comp(array_[l].first,key) > 0);
+  if (l == GetSize() || comp(array_[l].first, key) > 0) {
     return false;
   }
-  value = ValueAt(idx);
-  for (int i = idx; i < GetSize() - 1; i++) {
-    array_[i].first = array_[i + 1].first;
-    array_[i].second = array_[i + 1].second;
-  }
-  IncreaseSize(-1);
+  *value = array_[l].second;
   return true;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveFront() -> void {
+void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, KeyComparator comp) {
+  // int l = KeyIndex(key, comp);
+  // // 从后往前将l后面的元素都往后移动一个
+
+  // if (comp(KeyAt(l), key) == 0) {
+  //   return;
+  // }
+  // IncreaseSize(1);
+  // for (int i = GetSize() - 1; i > l; i--) {
+  //   assert(i >=0 && i < GetSize());
+  //   array_[i] = array_[i - 1];
+  // }
+  // // 在l处插入k/v
+  // array_[l] = MappingType{key, value};
+  auto index = KeyIndex(key, comp);
+  if (index == GetSize()) {
+    *(array_ + index) = {key, value};
+    IncreaseSize(1);
+    return;
+  }
+  std::move_backward(array_ + index, array_ + GetSize(), array_ + GetSize() + 1);
+  *(array_ + index) = {key, value};
+  IncreaseSize(1);
+}
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyNFrom(MappingType *items, int size) {
+  IncreaseSize(size);
+  std::copy(items, items + size, array_ + GetSize() - size);
+}
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveHalfTo(BPlusTreeLeafPage *recipient) {
+  int start_index = GetMinSize();
+  // ?,用GetSize
+  int move_num = GetSize() - start_index;
+  recipient->CopyNFrom(array_ + start_index, move_num);
+  IncreaseSize(-1 * move_num);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::Delete(const KeyType &key, KeyComparator &comp) {
+  int l = KeyIndex(key, comp);
+  // 不存在,就立马返回
+  if (l == GetSize() || comp(array_[l].first, key) > 0) {
+    return;
+  }
+  std::move(array_ + l + 1, array_ + GetSize(), array_ + l);
+  IncreaseSize(-1);
+}
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveAllTo(BPlusTreeLeafPage *recipient) {
+  recipient->CopyNFrom(array_, GetSize());
+  SetSize(0);
+}
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveFirstToLast(BPlusTreeLeafPage *recipient) {
+  recipient->CopyNFrom(array_, 1);
+
   for (int i = 0; i < GetSize() - 1; i++) {
-    array_[i].first = array_[i + 1].first;
-    array_[i].second = array_[i + 1].second;
+    array_[i] = array_[i + 1];
   }
   IncreaseSize(-1);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::CopyAllFrom(BPlusTreeLeafPage *leaf_page) -> void {
-  int ori_size = GetSize();
-  int new_size = ori_size + leaf_page->GetSize();
-  SetSize(new_size);
-
-  for (int i = ori_size; i < new_size; i++) {
-    array_[i].first = leaf_page->KeyAt(i - ori_size);
-    array_[i].second = leaf_page->ValueAt(i - ori_size);
-  }
-  leaf_page->SetSize(0);
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveLastToFirst(BPlusTreeLeafPage *recipient) {
+  recipient->CopyFirstFrom(array_[GetSize() - 1]);
+  IncreaseSize(-1);
 }
-
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyFirstFrom(const MappingType &item) {
+  std::move_backward(array_, array_ + GetSize(), array_ + GetSize() + 1);
+  array_[0] = item;
+  IncreaseSize(1);
+}
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;
 template class BPlusTreeLeafPage<GenericKey<16>, RID, GenericComparator<16>>;

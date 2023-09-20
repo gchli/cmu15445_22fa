@@ -20,28 +20,24 @@ DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *
                                std::unique_ptr<AbstractExecutor> &&child_executor)
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
-void DeleteExecutor::Init() {
-  child_executor_->Init();
-  //	throw NotImplementedException("DeleteExecutor is not implemented");
-}
+void DeleteExecutor::Init() { child_executor_->Init(); }
 
 auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple child_tuple;
 
   std::vector<Value> values{};
-	int count = 0;
+  int count = 0;
   bool status = child_executor_->Next(&child_tuple, rid);
-	values.reserve(GetOutputSchema().GetColumnCount());
-	values.emplace_back(TypeId::INTEGER, 0);
-//	values[0] = Value{TypeId::INTEGER, 0};
-	*tuple = Tuple(values, &GetOutputSchema());
+  values.reserve(GetOutputSchema().GetColumnCount());
+  values.emplace_back(TypeId::INTEGER, 0);
+  *tuple = Tuple(values, &GetOutputSchema());
   if (not_end_ && !status) {
     not_end_ = false;
-	  return true;
+    return true;
   }
   not_end_ = false;
   if (!status) {
-	  return false;
+    return false;
   }
   while (status) {
     ++count;
@@ -61,8 +57,8 @@ auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
     status = child_executor_->Next(&child_tuple, rid);
   }
 
-//  values.reserve(GetOutputSchema().GetColumnCount());
-//  values.emplace_back(Value{TypeId::INTEGER, count});
+  //  values.reserve(GetOutputSchema().GetColumnCount());
+  //  values.emplace_back(Value{TypeId::INTEGER, count});
   values[0] = Value{TypeId::INTEGER, count};
   *tuple = Tuple(values, &GetOutputSchema());
   return true;

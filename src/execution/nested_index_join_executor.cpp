@@ -48,19 +48,18 @@ void NestIndexJoinExecutor::Init() {
     for (auto &r : index_result) {
       Tuple right_tuple{};
       std::vector<Value> all_values(values);
-      //			all_values.assign(values.begin(), values.end());
       table_info->table_->GetTuple(r, &right_tuple, exec_ctx_->GetTransaction());
       for (size_t i = 0; i < plan_->InnerTableSchema().GetColumnCount(); ++i) {
         all_values.emplace_back(right_tuple.GetValue(&plan_->InnerTableSchema(), i));
       }
-      result_.emplace_back(Tuple(all_values, &GetOutputSchema()));
+      result_.emplace_back(all_values, &GetOutputSchema());
     }
 
     if (index_result.empty() && plan_->GetJoinType() == JoinType::LEFT) {
       for (size_t i = 0; i < plan_->InnerTableSchema().GetColumnCount(); ++i) {
         values.emplace_back(ValueFactory::GetNullValueByType(TypeId::INTEGER));
       }
-      result_.emplace_back(Tuple(values, &GetOutputSchema()));
+      result_.emplace_back(values, &GetOutputSchema());
     }
 
     status = child_executor_->Next(&child_tuple, &rid);

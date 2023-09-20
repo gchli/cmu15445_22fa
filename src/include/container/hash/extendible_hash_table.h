@@ -159,18 +159,18 @@ class ExtendibleHashTable : public HashTable<K, V> {
 
    private:
     // TODO(student): You may add additional private members and helper functions
-    size_t size_;
-    int depth_;
-    std::list<std::pair<K, V>> list_;
+    size_t size_;                      // 一个bucket能包含的最多的元素数量
+    int depth_;                        // Local Depth
+    std::list<std::pair<K, V>> list_;  // 以list形式保存K/V
   };
 
  private:
   // TODO(student): You may add additional private members and helper functions and remove the ones
   // you don't need.
 
-  int global_depth_{0};  // The global depth of the directory
-  size_t bucket_size_;   // The size of a bucket
-  int num_buckets_{1};   // The number of buckets in the hash table
+  int global_depth_;    // The global depth of the directory
+  size_t bucket_size_;  // The size of a bucket
+  int num_buckets_;     // The number of buckets in the hash table
   mutable std::mutex latch_;
   std::vector<std::shared_ptr<Bucket>> dir_;  // The directory of the hash table
 
@@ -181,7 +181,8 @@ class ExtendibleHashTable : public HashTable<K, V> {
    * @param bucket The bucket to be redistributed.
    */
   auto RedistributeBucket(std::shared_ptr<Bucket> bucket) -> void;
-
+  auto NewBucket(int local_depth) -> std::shared_ptr<Bucket>;
+  void InsertHelper(const K &key, const V &value);
   /*****************************************************************
    * Must acquire latch_ first before calling the below functions. *
    *****************************************************************/
@@ -192,7 +193,6 @@ class ExtendibleHashTable : public HashTable<K, V> {
    * @return The entry index in the directory.
    */
   auto IndexOf(const K &key) -> size_t;
-  auto ExpandDirectory() -> void;
 
   auto GetGlobalDepthInternal() const -> int;
   auto GetLocalDepthInternal(int dir_index) const -> int;

@@ -34,7 +34,8 @@ void NestedLoopJoinExecutor::Init() {
   left_executor_->Init();
   right_executor_->Init();
   index_ = 0;
-  std::vector<Tuple> left_tuples, right_tuples;
+  std::vector<Tuple> left_tuples;
+  std::vector<Tuple> right_tuples;
   Tuple child_tuple;
   RID rid;
 
@@ -50,11 +51,11 @@ void NestedLoopJoinExecutor::Init() {
     bool left_match = false;
     for (auto &right_tuple : right_tuples) {
       bool right_match = plan_->Predicate()
-                     .EvaluateJoin(&left_tuple, left_executor_->GetOutputSchema(), &right_tuple,
-                                   right_executor_->GetOutputSchema())
-                     .GetAs<bool>();
+                             .EvaluateJoin(&left_tuple, left_executor_->GetOutputSchema(), &right_tuple,
+                                           right_executor_->GetOutputSchema())
+                             .GetAs<bool>();
       if (right_match) {
-		  left_match = true;
+        left_match = true;
         std::vector<Value> values{};
         for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); ++i) {
           values.emplace_back(left_tuple.GetValue(&left_executor_->GetOutputSchema(), i));
@@ -65,18 +66,17 @@ void NestedLoopJoinExecutor::Init() {
         result_.emplace_back(values, &GetOutputSchema());
       }
     }
-  	if (plan_->GetJoinType() == JoinType::LEFT && !left_match) {
-	  	std::vector<Value> values{};
-	 	 for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); ++i) {
-			  values.emplace_back(left_tuple.GetValue(&left_executor_->GetOutputSchema(), i));
-	  	}
-	 	 for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); ++i) {
-		  values.emplace_back(ValueFactory::GetNullValueByType(TypeId::INTEGER));
-	  	}
-		  result_.emplace_back(values, &GetOutputSchema());
-  	}
+    if (plan_->GetJoinType() == JoinType::LEFT && !left_match) {
+      std::vector<Value> values{};
+      for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); ++i) {
+        values.emplace_back(left_tuple.GetValue(&left_executor_->GetOutputSchema(), i));
+      }
+      for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); ++i) {
+        values.emplace_back(ValueFactory::GetNullValueByType(TypeId::INTEGER));
+      }
+      result_.emplace_back(values, &GetOutputSchema());
+    }
   }
-  //	throw NotImplementedException("NestedLoopJoinExecutor is not implemented");
 }
 
 auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {

@@ -11,123 +11,121 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/lru_k_replacer.h"
-#include <cstddef>
-#include <iostream>
-#include <mutex>  // NOLINT
-#include <stdexcept>
+#include <cmath>
+#include <exception>
 #include "common/config.h"
+#include "type/limits.h"
 
 namespace bustub {
 
-LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_frames), k_(k) {}
+LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k)
+    : replacer_size_(num_frames), k_(k), is_evictable_(num_frames, false) {}
 
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
-  std::lock_guard<std::mutex> guard(latch_);
-  if (curr_size_ == 0) {
-    return false;
-  }
-
-#define INVALID_FRAME_ID (-1)
-
-  frame_id_t victim = INVALID_FRAME_ID;
-  size_t min_timestamp = current_timestamp_ + 1;
-  for (auto id : history_list_) {
-    if (!frame_info_map_[id].IsEvictable()) {
+  std::scoped_lock<std::mutex> lock(latch_);
+  for (auto i = history_.rbegin(); i != history_.rend(); ++i) {
+    if (!is_evictable_[(*i)]) {
       continue;
     }
-    auto timestamp = frame_info_map_[id].GetTimestamp();
-    if (timestamp < min_timestamp) {
-      victim = id;
-      min_timestamp = timestamp;
+    *frame_id = (*i);
+    curr_size_--;
+    // 将i指向的元素删了,i就不能用了呀,先保存下来
+    frame_id_t tmp = (*i);
+    history_.erase(history_map_[*i].second);
+    history_map_.erase(tmp);
+    // 初始化为false,防止在Remove时错误
+    is_evictable_[tmp] = false;
+    return true;
+  }
+  for (auto i = cache_.rbegin(); i != cache_.rend(); ++i) {
+    if (!is_evictable_[(*i)]) {
+      continue;
     }
+    frame_id_t tmp = (*i);
+    *frame_id = tmp;
+    curr_size_--;
+    history_map_.erase(tmp);
+    cache_.erase(cache_map_[tmp]);
+    cache_map_.erase(tmp);
+    // 初始化为false
+    is_evictable_[tmp] = false;
+    return true;
   }
-
-  if (victim == INVALID_FRAME_ID) {
-    for (auto iter = cache_list_.rbegin(); iter != cache_list_.rend(); iter++) {
-      if (!frame_info_map_[*iter].IsEvictable()) {
-        continue;
-      }
-      victim = *iter;
-      break;
-    }
-  }
-
-  if (victim == INVALID_FRAME_ID) {
-    return false;
-  }
-
-  *frame_id = victim;
-  FrameInfo::FrameLocation location = frame_info_map_[victim].GetLocation();
-  if (location == FrameInfo::FrameLocation::history) {
-    history_list_.remove(victim);
-  } else {
-    cache_list_.remove(victim);
-  }
-  frame_info_map_.erase(victim);
-  curr_size_--;
-  return true;
+  return false;
 }
 
 void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
-  std::lock_guard<std::mutex> guard(latch_);
-  if (static_cast<size_t>(frame_id) > replacer_size_) {
-    throw std::runtime_error("frame_id " + std::to_string(frame_id) + " is out of range.\n");
+  std::scoped_lock<std::mutex> lock(latch_);
+  if (frame_id > static_cast<frame_id_t>(replacer_size_)) {
+    std::throw_with_nested("invalid frame_id");
+    BUSTUB_ASSERT("cuo", "wu");
   }
-
-  IncreseTimestamp();
-  if (frame_info_map_.count(frame_id) == 0) {
-    frame_info_map_[frame_id] = {frame_id, current_timestamp_};
-    history_list_.push_back(frame_id);
-    curr_size_++;
-  }
-
-  frame_info_map_[frame_id].IncrementAccessCount();
-
-  auto access_count = frame_info_map_[frame_id].GetAccessCount();
-  if (access_count == k_) {
-    history_list_.remove(frame_id);
-    frame_info_map_[frame_id].SetLocation(FrameInfo::FrameLocation::cache);
-    cache_list_.push_front(frame_id);
-  } else if (access_count > k_) {
-    cache_list_.remove(frame_id);
-    cache_list_.push_front(frame_id);
+  // 不存在
+  if (history_map_.find(frame_id) == history_map_.end()) {
+    history_.push_front(frame_id);
+    history_map_.insert({frame_id, {1, history_.begin()}});
+    // curr_size_++;
+    // is_evictable_[frame_id] = true;
+  } else if (history_map_[frame_id].first < k_ - 1) {
+    history_map_[frame_id].first++;
+  } else if (history_map_[frame_id].first == k_ - 1) {
+    history_map_[frame_id].first++;
+    auto i = history_map_[frame_id].second;
+    history_.erase(i);
+    cache_.push_front(frame_id);
+    cache_map_.insert({frame_id, cache_.begin()});
+  } else if (history_map_[frame_id].first == k_) {
+    auto pos = cache_map_[frame_id];
+    cache_.erase(pos);
+    cache_.push_front(frame_id);
+    cache_map_[frame_id] = cache_.begin();
   }
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
-  std::lock_guard<std::mutex> guard(latch_);
-  if (frame_info_map_.count(frame_id) == 0) {
-    throw std::runtime_error("frame_id " + std::to_string(frame_id) + " not found in frame_info_map_.\n");
+  std::scoped_lock<std::mutex> lock(latch_);
+  if (frame_id > static_cast<frame_id_t>(replacer_size_)) {
+    std::throw_with_nested("invalid frame_id");
+    BUSTUB_ASSERT("cuo", "wu");
   }
-
-  bool cur_frame_evictable = frame_info_map_[frame_id].IsEvictable();
-
-  if (set_evictable && !cur_frame_evictable) {
-    curr_size_++;
-  } else if (!set_evictable && cur_frame_evictable) {
+  // ? 要首先判断是不是已经被驱逐了
+  if (history_map_.find(frame_id) == history_map_.end()) {
+    return;
+  }
+  if (is_evictable_[frame_id] && !set_evictable) {
+    is_evictable_[frame_id] = false;
     curr_size_--;
   }
-  frame_info_map_[frame_id].SetEvictable(set_evictable);
+  if (!is_evictable_[frame_id] && set_evictable) {
+    is_evictable_[frame_id] = true;
+    curr_size_++;
+  }
 }
 
 void LRUKReplacer::Remove(frame_id_t frame_id) {
-  std::lock_guard<std::mutex> guard(latch_);
-  if (frame_info_map_.count(frame_id) == 0) {
-    return;
+  std::scoped_lock<std::mutex> lock(latch_);
+  if (frame_id > static_cast<frame_id_t>(replacer_size_) ||
+      (history_map_.find(frame_id) != history_map_.end() && !is_evictable_[frame_id])) {
+    std::throw_with_nested("invalid frame_id");
+    BUSTUB_ASSERT("cuo", "wu");
   }
-  if (!frame_info_map_[frame_id].IsEvictable()) {
-    throw std::runtime_error("frame_id " + std::to_string(frame_id) + " is not evictable.\n");
+  if (history_map_.find(frame_id) != history_map_.end() && history_map_[frame_id].first < k_) {
+    curr_size_--;
+    history_.erase(history_map_[frame_id].second);
+    history_map_.erase((frame_id));
+    is_evictable_[frame_id] = false;
+  } else if (history_map_.find(frame_id) != history_map_.end() && history_map_[frame_id].first == k_) {
+    curr_size_--;
+    history_map_.erase(frame_id);
+    cache_.erase(cache_map_[frame_id]);
+    cache_map_.erase(frame_id);
+    is_evictable_[frame_id] = false;
   }
-  FrameInfo::FrameLocation location = frame_info_map_[frame_id].GetLocation();
-  if (location == FrameInfo::FrameLocation::history) {
-    history_list_.remove(frame_id);
-  } else {
-    cache_list_.remove(frame_id);
-  }
-  frame_info_map_.erase(frame_id);
-  curr_size_--;
 }
 
-auto LRUKReplacer::Size() -> size_t { return curr_size_; }
+auto LRUKReplacer::Size() -> size_t {
+  std::scoped_lock<std::mutex> lock(latch_);
+  return curr_size_;
+}
 
 }  // namespace bustub
