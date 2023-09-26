@@ -36,7 +36,6 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
   SetPageId(page_id);
   SetParentPageId(parent_id);
   SetMaxSize(max_size);
-  // 将初始化的size设置为0
   SetSize(0);
 }
 /*
@@ -45,12 +44,12 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const -> KeyType {
-  // replace with your own code
   return array_[index].first;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) { array_[index].first = key; }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValueAt(int index, const ValueType &value) { array_[index].second = value; }
 /*
@@ -84,6 +83,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyCompa
   }
   return l;
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Find(const KeyType &key, KeyComparator &comp) -> ValueType {
   for (int i = 1; i < GetSize(); i++) {
@@ -99,13 +99,8 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &left_value, const KeyType &key,
                                                      const ValueType &value) {
   int index = ValueIndex(left_value);
-  // LOG_DEBUG("index: %d",index);
   assert(index != -1);
-  // for (int i = index + 1; i < GetSize() - 1; i++) {
-  //   array_[i + 1] = array_[i];
-  // }
   std::move_backward(array_ + index + 1, array_ + GetSize(), array_ + GetSize() + 1);
-  // assert(i >= 0);
   array_[index + 1] = std::make_pair(key, value);
   IncreaseSize(1);
 }
@@ -118,23 +113,24 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::PopulateNewRoot(const ValueType &left_value
   SetValueAt(0, left_value);
   SetValueAt(1, value);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, BufferPoolManager *buffer_pool_manager) {
-  std::copy(items, items + size, array_ + GetSize());
-  // 将这些复制过来的指针指向的节点的父节点改成现在的这个
-  for (int i = GetSize(); i < GetSize() + size; ++i) {
+  int cur_size = GetSize();
+  int cur_page_id = GetPageId();
+  std::copy(items, items + size, array_ + cur_size);
+  for (int i = cur_size; i < cur_size + size; ++i) {
     auto child_page = buffer_pool_manager->FetchPage(ValueAt(i));
     auto child_node = reinterpret_cast<BPlusTreePage *>(child_page);
-    // LOG_DEBUG("PageId() : %d",GetPageId());
-    child_node->SetParentPageId(GetPageId());
+    child_node->SetParentPageId(cur_page_id);
     buffer_pool_manager->UnpinPage(ValueAt(i), true);
   }
   IncreaseSize(size);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient,
                                                 BufferPoolManager *buffer_pool_manager) {
-  // 注意非叶子节点的最小size是GetMinSize() + 1
   int start_index = GetMinSize();
   int move_num = GetSize() - start_index;
 
@@ -162,6 +158,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Delete(const KeyType &key, KeyComparator &c
   }
   IncreaseSize(-1);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, BufferPoolManager *buffer_pool_manager,
                                                const KeyType &mid_key) {
@@ -169,23 +166,25 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient,
   recipient->CopyNFrom(array_, GetSize(), buffer_pool_manager);
   SetSize(0);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveFirstToLast(BPlusTreeInternalPage *recipient,
                                                      BufferPoolManager *buffer_pool_manager, const KeyType &mid_key) {
   SetKeyAt(0, mid_key);
   recipient->CopyNFrom(array_, 1, buffer_pool_manager);
-  // 整体左移
   for (int i = 0; i < GetSize() - 1; i++) {
     array_[i] = array_[i + 1];
   }
   IncreaseSize(-1);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveLastToFirst(BPlusTreeInternalPage *recipient,
                                                      BufferPoolManager *buffer_pool_manager) {
   recipient->CopyFirstFrom(array_[GetSize() - 1], buffer_pool_manager);
   IncreaseSize(-1);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyFirstFrom(const MappingType &item, BufferPoolManager *buffer_pool_manager) {
   std::move_backward(array_, array_ + GetSize(), array_ + GetSize() + 1);
@@ -198,6 +197,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyFirstFrom(const MappingType &item, Buff
 
   IncreaseSize(1);
 }
+
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;
 template class BPlusTreeInternalPage<GenericKey<8>, page_id_t, GenericComparator<8>>;

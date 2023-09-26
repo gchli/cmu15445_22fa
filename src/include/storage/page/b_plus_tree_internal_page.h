@@ -48,10 +48,10 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto Find(const KeyType &key, KeyComparator &comp) -> ValueType;
   void InsertNodeAfter(const ValueType &left_value, const KeyType &key, const ValueType &value);
   void PopulateNewRoot(const ValueType &left_value, const KeyType &key, const ValueType &value);
-  // split的辅助函数
+
   void CopyNFrom(MappingType *item, int size, BufferPoolManager *buffer_pool_manager);
   void MoveHalfTo(BPlusTreeInternalPage *recipient, BufferPoolManager *buffer_pool_manager);
-  // Remove的辅助函数
+
   void Delete(const KeyType &key, KeyComparator &comp);
   void MoveAllTo(BPlusTreeInternalPage *recipient, BufferPoolManager *buffer_pool_manager, const KeyType &mid_key);
 

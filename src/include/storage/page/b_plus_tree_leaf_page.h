@@ -45,7 +45,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   // After creating a new leaf page from buffer pool, must call initialize
   // method to set default values
   void Init(page_id_t page_id, page_id_t parent_id = INVALID_PAGE_ID, int max_size = LEAF_PAGE_SIZE);
-  // helper methods
+
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
@@ -54,10 +54,8 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto KeyIndex(const KeyType &key, const KeyComparator &comp) const -> int;
   auto LookUp(const KeyType &key, ValueType *value, KeyComparator comp) -> bool;
 
-  // 假如满了直接返回false,不满插入,对于不重复key的检查在上层实现
   void Insert(const KeyType &key, const ValueType &value, KeyComparator comp);
 
-  // split函数的两个辅助函数
   void CopyNFrom(MappingType *items, int size);
   void MoveHalfTo(BPlusTreeLeafPage *recipient);
 
