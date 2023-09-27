@@ -308,6 +308,8 @@ class LockManager {
   };
 
   auto IsUpgradable(LockMode cur_mode, LockMode target_mode) -> bool;
+  auto CanGrantLock(std::shared_ptr<LockRequestQueue> lock_request_queue, LockMode lock_mode) -> bool;
+
   /** Structure that holds lock requests for a given table oid */
   std::unordered_map<table_oid_t, std::shared_ptr<LockRequestQueue>> table_lock_map_;
   /** Coordination */

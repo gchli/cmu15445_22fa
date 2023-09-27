@@ -12,6 +12,7 @@
 
 #include "concurrency/lock_manager.h"
 #include <memory>
+#include <shared_mutex>
 
 #include "common/config.h"
 #include "common/logger.h"
@@ -54,6 +55,11 @@ auto LockManager::IsUpgradable(LockMode cur_mode, LockMode target_mode) -> bool 
   }
   return is_upgradable;
 }
+
+auto LockManager::CanGrantLock(std::shared_ptr<LockRequestQueue> lock_request_queue, LockMode lock_mode) -> bool {
+
+}
+
 auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oid_t &oid) -> bool {
   auto txn_state = txn->GetState();
   auto txn_iso_level = txn->GetIsolationLevel();
@@ -131,6 +137,7 @@ auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oi
       break;
     }
   }
+
 
   return true;
 }
