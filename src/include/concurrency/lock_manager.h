@@ -297,8 +297,17 @@ class LockManager {
    */
   auto RunCycleDetection() -> void;
 
+  static std::vector<std::vector<bool>> lock_compatible_matrix;
+
  private:
+
   /** Fall 2022 */
+
+  inline auto IsCompatable(LockMode lock_mode_l, LockMode lock_mode_r) -> bool {
+    return lock_compatible_matrix[static_cast<int>(lock_mode_l)][static_cast<int>(lock_mode_r)];
+  };
+
+  auto IsUpgradable(LockMode cur_mode, LockMode target_mode) -> bool;
   /** Structure that holds lock requests for a given table oid */
   std::unordered_map<table_oid_t, std::shared_ptr<LockRequestQueue>> table_lock_map_;
   /** Coordination */
