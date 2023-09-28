@@ -17,6 +17,7 @@
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -64,7 +65,7 @@ class LockManager {
   class LockRequestQueue {
    public:
     /** List of lock requests for the same resource (table or row) */
-    std::list<LockRequest *> request_queue_;
+    std::list<std::shared_ptr<LockRequest>> request_queue_;
     /** For notifying blocked transactions on this rid */
     std::condition_variable cv_;
     /** txn_id of an upgrading transaction (if any) */
@@ -308,7 +309,9 @@ class LockManager {
   };
 
   auto IsUpgradable(LockMode cur_mode, LockMode target_mode) -> bool;
-  auto CanGrantLock(std::shared_ptr<LockRequestQueue> lock_request_queue, LockMode lock_mode) -> bool;
+  auto CanGrantTableLock(std::shared_ptr<LockRequestQueue>& lock_request_queue, std::shared_ptr<LockRequest>& lock_request) -> bool;
+  auto TrackTableLock(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, bool remove_lock = false);
+  auto IsTableLocked(Transaction *txn, const table_oid_t &oid) -> bool;
 
   /** Structure that holds lock requests for a given table oid */
   std::unordered_map<table_oid_t, std::shared_ptr<LockRequestQueue>> table_lock_map_;
