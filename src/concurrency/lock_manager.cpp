@@ -65,9 +65,13 @@ auto LockManager::CanGrantTableLock(std::shared_ptr<LockRequestQueue> &lock_requ
       // some better choices to check the equality of the requests?
       break;
     }
-    if (!request->granted_) {
-      return false;
+    auto *txn = TransactionManager::GetTransaction(request->txn_id_);
+    if (txn->GetState() == TransactionState::ABORTED) {
+      continue;
     }
+    // if (!request->granted_) {
+    //   return false;
+    // }
     if (!IsCompatable(request->lock_mode_, lock_request->lock_mode_)) {
       return false;
     }
@@ -83,9 +87,13 @@ auto LockManager::CanGrantRowLock(std::shared_ptr<LockRequestQueue> &lock_reques
       // some better choices to check the equality of the requests?
       break;
     }
-    if (!request->granted_) {
-      return false;
+    auto *txn = TransactionManager::GetTransaction(request->txn_id_);
+    if (txn->GetState() == TransactionState::ABORTED) {
+      continue;
     }
+    // if (!request->granted_) {
+    //   return false;
+    // }
     if (!IsCompatable(request->lock_mode_, lock_request->lock_mode_)) {
       return false;
     }
@@ -274,15 +282,21 @@ auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oi
     auto insert_it =
         std::find_if(table_req_queue->request_queue_.begin(), table_req_queue->request_queue_.end(),
                      [](const std::shared_ptr<LockRequest> &lock_request) { return !lock_request->granted_; });
-    table_req_queue->request_queue_.insert(insert_it, new_lock_req);
+    req_it = table_req_queue->request_queue_.insert(insert_it, new_lock_req);
     new_lock_req->lock_mode_ = lock_mode;
   } else {
-    table_req_queue->request_queue_.emplace_back(new_lock_req);
+    req_it = table_req_queue->request_queue_.insert(table_req_queue->request_queue_.end(), new_lock_req);
   }
 
   table_req_queue->cv_.wait(table_latch, [&]() -> bool {
     return txn->GetState() == TransactionState::ABORTED || CanGrantTableLock(table_req_queue, new_lock_req);
   });
+
+  if (txn->GetState() == TransactionState::ABORTED) {
+    table_req_queue->request_queue_.erase(req_it);
+    return false;
+  }
+
   new_lock_req->granted_ = true;
   if (upgrade_lock) {
     table_req_queue->upgrading_ = INVALID_TXN_ID;
@@ -407,8 +421,6 @@ auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_
   /* get the lock request queue. If not exists, create a new one. */
   auto new_lock_req = std::make_shared<LockRequest>(txn->GetTransactionId(), lock_mode, oid, rid);
 
-  // auto new_lock_req = new LockRequest(txn->GetTransactionId(), lock_mode, oid);
-
   /* always grant the first lock of the table*/
   std::unique_lock<std::mutex> row_lock_map_latch(row_lock_map_latch_);
   if (row_lock_map_.find(rid) == row_lock_map_.end()) {
@@ -458,15 +470,19 @@ auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_
     auto insert_it =
         std::find_if(row_req_queue->request_queue_.begin(), row_req_queue->request_queue_.end(),
                      [](const std::shared_ptr<LockRequest> &lock_request) { return !lock_request->granted_; });
-    row_req_queue->request_queue_.insert(insert_it, new_lock_req);
-    TrackTableLock(txn, new_lock_req->lock_mode_, oid, true);
+    req_it = row_req_queue->request_queue_.insert(insert_it, new_lock_req);
   } else {
-    row_req_queue->request_queue_.emplace_back(new_lock_req);
+    req_it = row_req_queue->request_queue_.insert(row_req_queue->request_queue_.end(), new_lock_req);
   }
 
   row_req_queue->cv_.wait(row_latch, [&]() -> bool {
     return txn->GetState() == TransactionState::ABORTED || CanGrantRowLock(row_req_queue, new_lock_req);
   });
+
+  if (txn->GetState() == TransactionState::ABORTED) {
+    row_req_queue->request_queue_.erase(req_it);
+    return false;
+  }
   new_lock_req->granted_ = true;
   if (upgrade_lock) {
     row_req_queue->upgrading_ = INVALID_TXN_ID;

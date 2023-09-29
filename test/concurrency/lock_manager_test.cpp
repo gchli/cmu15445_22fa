@@ -129,9 +129,15 @@ void TableLockUpgradeTest1() {
   table_oid_t oid = 0;
   auto txn1 = txn_mgr.Begin();
 
+  EXPECT_EQ(true, lock_mgr.LockTable(txn1, LockManager::LockMode::INTENTION_SHARED, oid));
+  CheckTableLockSizes(txn1, 0, 0, 1, 0, 0);
+
   /** Take S lock */
   EXPECT_EQ(true, lock_mgr.LockTable(txn1, LockManager::LockMode::SHARED, oid));
   CheckTableLockSizes(txn1, 1, 0, 0, 0, 0);
+
+  EXPECT_EQ(true, lock_mgr.LockTable(txn1, LockManager::LockMode::SHARED_INTENTION_EXCLUSIVE, oid));
+  CheckTableLockSizes(txn1, 0, 0, 0, 0, 1);
 
   /** Upgrade S to X */
   EXPECT_EQ(true, lock_mgr.LockTable(txn1, LockManager::LockMode::EXCLUSIVE, oid));
@@ -145,7 +151,7 @@ void TableLockUpgradeTest1() {
   delete txn1;
 }
 
-TEST(LockManagerTest, DISABLED_TableLockUpgradeTest1) { TableLockUpgradeTest1(); }  // NOLINT
+TEST(LockManagerTest, TableLockUpgradeTest1) { TableLockUpgradeTest1(); }  // NOLINT
 
 void RowLockTest1() {
   LockManager lock_mgr{};
@@ -377,7 +383,7 @@ TEST(LockManagerTest, DISABLED_AbortTest1) {
   delete txn2;
 }
 
-TEST(LockManagerTest, DISABLED_UpgradeTest) {
+TEST(LockManagerTest, UpgradeTest) {
   LockManager lock_mgr{};
   TransactionManager txn_mgr{&lock_mgr};
   table_oid_t oid = 0;
