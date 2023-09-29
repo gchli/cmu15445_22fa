@@ -107,7 +107,6 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::InsertInParent(BPlusTreePage *left_node, BPlusTreePage *right_node, const KeyType &key,
                                     Transaction *transaction) {
-
   if (left_node->IsRootPage()) {
     auto page = buffer_pool_manager_->NewPage(&root_page_id_);
     UpdateRootPageId();
@@ -485,10 +484,9 @@ auto BPLUSTREE_TYPE::IsPageSafe(BPlusTreePage *node, Operation operation) -> boo
   if (operation == Operation::SEARCH) {
     return true;
   }
-  //todo: optimize the logic for root's min size
+  // todo: optimize the logic for root's min size
   if (node->IsLeafPage()) {
     if (operation == Operation::DELETE) {
-
       if (node->IsRootPage()) {
         return node->GetSize() > 1;
       }

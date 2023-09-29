@@ -301,7 +301,6 @@ class LockManager {
   static std::vector<std::vector<bool>> lock_compatible_matrix;
 
  private:
-
   /** Fall 2022 */
 
   inline auto IsCompatable(LockMode lock_mode_l, LockMode lock_mode_r) -> bool {
@@ -309,11 +308,14 @@ class LockManager {
   };
 
   auto IsUpgradable(LockMode cur_mode, LockMode target_mode) -> bool;
-  auto CanGrantTableLock(std::shared_ptr<LockRequestQueue>& lock_request_queue, std::shared_ptr<LockRequest>& lock_request) -> bool;
-  auto CanGrantRowLock(std::shared_ptr<LockRequestQueue>& lock_request_queue, std::shared_ptr<LockRequest>& lock_request) -> bool;
+  auto CanGrantTableLock(std::shared_ptr<LockRequestQueue> &lock_request_queue,
+                         std::shared_ptr<LockRequest> &lock_request) -> bool;
+  auto CanGrantRowLock(std::shared_ptr<LockRequestQueue> &lock_request_queue,
+                       std::shared_ptr<LockRequest> &lock_request) -> bool;
   auto TrackTableLock(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, bool remove_lock = false);
   auto TrackRowLock(Transaction *txn, LockMode lock_mode, const oid_t &oid, const RID &rid, bool remove_lock = false);
   auto IsTableLocked(Transaction *txn, const table_oid_t &oid) -> bool;
+  auto IsRowTableLockCompatable(Transaction *txn, const table_oid_t &oid, const LockMode &row_lock_mode) -> bool;
   auto IsRowLocked(Transaction *txn, const table_oid_t &oid, const RID &rid) -> bool;
   /** Structure that holds lock requests for a given table oid */
   std::unordered_map<table_oid_t, std::shared_ptr<LockRequestQueue>> table_lock_map_;
