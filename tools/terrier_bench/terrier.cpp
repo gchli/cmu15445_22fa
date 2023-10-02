@@ -28,7 +28,7 @@ auto ClockMs() -> uint64_t {
 }
 
 static const size_t BUSTUB_NFT_NUM = 30000;
-static const size_t BUSTUB_TERRIER_THREAD = 2;
+static const size_t BUSTUB_TERRIER_THREAD = 10;
 static const size_t BUSTUB_TERRIER_CNT = 100;
 
 struct TerrierTotalMetrics {
