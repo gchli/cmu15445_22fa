@@ -306,36 +306,6 @@ class LockManager {
   inline auto IsCompatable(LockMode lock_mode_l, LockMode lock_mode_r) -> bool {
     return lock_compatible_matrix[static_cast<int>(lock_mode_l)][static_cast<int>(lock_mode_r)];
   };
-/*------------------------------*/
-  auto GrantLock(const std::shared_ptr<LockRequest> &lock_request,
-                 const std::shared_ptr<LockRequestQueue> &lock_request_queue) -> bool;
-
-  auto InsertOrDeleteTableLockSet(Transaction *txn, const std::shared_ptr<LockRequest> &lock_request, bool insert)
-      -> void;
-
-  auto InsertOrDeleteRowLockSet(Transaction *txn, const std::shared_ptr<LockRequest> &lock_request, bool insert)
-      -> void;
-
-  auto InsertRowLockSet(const std::shared_ptr<std::unordered_map<table_oid_t, std::unordered_set<RID>>> &lock_set,
-                        const table_oid_t &oid, const RID &rid) -> void {
-    auto row_lock_set = lock_set->find(oid);
-    if (row_lock_set == lock_set->end()) {
-      lock_set->emplace(oid, std::unordered_set<RID>{});
-      row_lock_set = lock_set->find(oid);
-    }
-    row_lock_set->second.emplace(rid);
-  }
-
-  auto DeleteRowLockSet(const std::shared_ptr<std::unordered_map<table_oid_t, std::unordered_set<RID>>> &lock_set,
-                        const table_oid_t &oid, const RID &rid) -> void {
-    auto row_lock_set = lock_set->find(oid);
-    if (row_lock_set == lock_set->end()) {
-      return;
-    }
-    row_lock_set->second.erase(rid);
-  }
-
-/*-----------------------------*/
   auto IsUpgradable(LockMode cur_mode, LockMode target_mode) -> bool;
   auto CanGrantTableLock(std::shared_ptr<LockRequestQueue> &lock_request_queue,
                          std::shared_ptr<LockRequest> &lock_request) -> bool;

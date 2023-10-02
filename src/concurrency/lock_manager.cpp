@@ -184,8 +184,7 @@ auto LockManager::IsTableLocked(Transaction *txn, const table_oid_t &oid) -> boo
 auto LockManager::IsRowTableLockCompatable(Transaction *txn, const table_oid_t &oid, const LockMode &row_lock_mode)
     -> bool {
   if (row_lock_mode == LockMode::EXCLUSIVE) {
-    return txn->IsTableExclusiveLocked(oid) ||
-           txn->IsTableIntentionExclusiveLocked(oid) ||
+    return txn->IsTableExclusiveLocked(oid) || txn->IsTableIntentionExclusiveLocked(oid) ||
            txn->IsTableSharedIntentionExclusiveLocked(oid);
   }
 
@@ -307,7 +306,9 @@ auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oi
       table_req_queue->upgrading_ = INVALID_TXN_ID;
     }
     auto to_remove = std::find_if(table_req_queue->request_queue_.begin(), table_req_queue->request_queue_.end(),
-                     [&](const std::shared_ptr<LockRequest> &lock_request) { return lock_request->txn_id_ == new_lock_req->txn_id_; });
+                                  [&](const std::shared_ptr<LockRequest> &lock_request) {
+                                    return lock_request->txn_id_ == new_lock_req->txn_id_;
+                                  });
 
     if (to_remove != table_req_queue->request_queue_.end()) {
       table_req_queue->request_queue_.erase(to_remove);
@@ -505,7 +506,9 @@ auto LockManager::LockRow(Transaction *txn, LockMode lock_mode, const table_oid_
     }
     // 会发生迭代器失效吗？
     auto to_remove = std::find_if(row_req_queue->request_queue_.begin(), row_req_queue->request_queue_.end(),
-                     [&](const std::shared_ptr<LockRequest> &lock_request) { return lock_request->txn_id_ == new_lock_req->txn_id_; });
+                                  [&](const std::shared_ptr<LockRequest> &lock_request) {
+                                    return lock_request->txn_id_ == new_lock_req->txn_id_;
+                                  });
 
     if (to_remove != row_req_queue->request_queue_.end()) {
       row_req_queue->request_queue_.erase(to_remove);
